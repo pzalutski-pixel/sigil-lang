@@ -26,7 +26,7 @@ case "$MODE" in
 esac
 
 # Explicit list (not a glob) so a stray probe file can't sneak into the archive.
-SRCS="runtime task scheduler worker channel net file console time"
+SRCS="runtime task scheduler worker channel net file console time memory os"
 
 mkdir -p build
 objs=""

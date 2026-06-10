@@ -757,7 +757,9 @@ fn run() -> Result<(), CompilerError> {
             "generic",
             "",
             OptimizationLevel::Default,
-            RelocMode::Default,
+            // PIC: Linux links executables as PIE by default (absolute relocs are
+            // rejected) and macOS requires position-independent code.
+            RelocMode::PIC,
             CodeModel::Default,
         )
         .ok_or_else(|| CompilerError::codegen("Failed to create target machine"))?;
