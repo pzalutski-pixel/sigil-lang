@@ -17,13 +17,15 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install LLVM 18 (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y llvm-18 llvm-18-dev clang-18 lld-18
+          # libpolly-18-dev: apt packages Polly's static lib separately from
+          # llvm-18-dev, and llvm-sys links it.
+          sudo apt-get install -y llvm-18 llvm-18-dev libpolly-18-dev clang-18 lld-18
           echo "LLVM_SYS_180_PREFIX=$(llvm-config-18 --prefix)" >> "$GITHUB_ENV"
           echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
 
@@ -34,6 +36,9 @@ jobs:
           PREFIX="$(brew --prefix llvm@18)"
           echo "LLVM_SYS_180_PREFIX=$PREFIX" >> "$GITHUB_ENV"
           echo "$PREFIX/bin" >> "$GITHUB_PATH"
+          # llvm@18 links against zstd from the brew prefix, which macOS's
+          # linker doesn't search by default.
+          echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
 
       - uses: dtolnay/rust-toolchain@stable
 
