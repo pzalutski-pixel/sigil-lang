@@ -1,0 +1,123 @@
+BEHAVIOR find
+
+DESCRIPTION
+  Finds first occurrence of needle in haystack.
+  Returns byte offset of first match, or -1 if not found.
+  Search is byte-by-byte, not unicode-aware.
+
+CONTRACT
+  INPUT haystack bytes 65536
+  INPUT needle bytes 256
+  OUTPUT index int 8
+  GUARANTEES writes_output
+
+HASH 7f2c5e1c
+
+IMPLEMENTATION
+  # Find first occurrence of needle in haystack
+
+  # Get needle length
+  needle_len = ALLOC 8 int
+  STORE needle_len 0 8
+
+  LABEL get_needle_len
+    nl_val = LOAD needle_len 8
+    byte = LOAD needle 1 nl_val
+    zero = ALLOC 1 int
+    STORE zero 0 1
+    zero_val = LOAD zero 1
+    FREE zero
+    is_null = IEQ byte zero_val 1
+    BRANCH is_null needle_len_done inc_needle_len
+
+  LABEL inc_needle_len
+    nl_val = LOAD needle_len 8
+    new_nl = IADD nl_val 1 8
+    STORE needle_len new_nl 8
+    max_needle = ALLOC 8 int
+    STORE max_needle 256 8
+    max_val = LOAD max_needle 8
+    FREE max_needle
+    at_max = IGE new_nl max_val 8
+    BRANCH at_max needle_len_done get_needle_len
+
+  LABEL needle_len_done
+    # Empty needle - return 0
+    nl_val = LOAD needle_len 8
+    zero_check = ALLOC 8 int
+    STORE zero_check 0 8
+    zero_chk_val = LOAD zero_check 8
+    FREE zero_check
+    is_empty = IEQ nl_val zero_chk_val 8
+    BRANCH is_empty found_at_zero search_start
+
+  LABEL found_at_zero
+    zero_idx = ALLOC 8 int
+    STORE zero_idx 0 8
+    z_val = LOAD zero_idx 8
+    FREE zero_idx
+    STORE index z_val 8
+    JUMP done
+
+  LABEL search_start
+    pos = ALLOC 8 int
+    STORE pos 0 8
+    max_pos = ALLOC 8 int
+    STORE max_pos 65536 8
+
+  LABEL search_loop
+    pos_val = LOAD pos 8
+    max_pos_val = LOAD max_pos 8
+    at_end = IGE pos_val max_pos_val 8
+    BRANCH at_end not_found try_match
+
+  LABEL try_match
+    match_pos = ALLOC 8 int
+    STORE match_pos 0 8
+
+  LABEL match_loop
+    mp_val = LOAD match_pos 8
+    nl_val = LOAD needle_len 8
+    matched_all = IGE mp_val nl_val 8
+    BRANCH matched_all found continue_match
+
+  LABEL continue_match
+    pos_val = LOAD pos 8
+    mp_val = LOAD match_pos 8
+    hay_idx = IADD pos_val mp_val 8
+    hay_char = LOAD haystack 1 hay_idx
+    needle_char = LOAD needle 1 mp_val
+    chars_equal = IEQ hay_char needle_char 1
+    BRANCH chars_equal match_next no_match_here
+
+  LABEL match_next
+    mp_val = LOAD match_pos 8
+    new_mp = IADD mp_val 1 8
+    STORE match_pos new_mp 8
+    JUMP match_loop
+
+  LABEL no_match_here
+    FREE match_pos
+    pos_val = LOAD pos 8
+    new_pos = IADD pos_val 1 8
+    STORE pos new_pos 8
+    JUMP search_loop
+
+  LABEL found
+    FREE match_pos
+    pos_val = LOAD pos 8
+    STORE index pos_val 8
+    JUMP done
+
+  LABEL not_found
+    neg_one = ALLOC 8 int
+    STORE neg_one -1 8
+    neg_val = LOAD neg_one 8
+    FREE neg_one
+    STORE index neg_val 8
+
+  LABEL done
+    FREE needle_len
+    FREE pos
+    FREE max_pos
+END

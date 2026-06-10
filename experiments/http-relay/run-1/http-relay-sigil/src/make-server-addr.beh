@@ -1,0 +1,30 @@
+BEHAVIOR make-server-addr
+
+DESCRIPTION
+  Creates sockaddr_in structure for listening on 0.0.0.0:9753
+  AF_INET=2, port=9753 in network byte order, addr=0.0.0.0
+
+CONTRACT
+  OUTPUT addr bytes 128
+  OUTPUT addr_len int 8
+  GUARANTEES writes_output
+
+HASH 25b33dd7
+
+IMPLEMENTATION
+  # sin_family = AF_INET = 2 (at offset 0, 2 bytes)
+  STORE addr 2 2 0
+
+  # sin_port = 9753 in network byte order
+  # 9753 = 0x2619, swapped for little-endian storage = 0x1926 = 6438
+  STORE addr 6438 2 2
+
+  # sin_addr = 0.0.0.0 (at offset 4, 4 bytes)
+  STORE addr 0 4 4
+
+  # Zero padding (offsets 8-15)
+  STORE addr 0 8 8
+
+  # Set address length
+  STORE addr_len 16 8
+END

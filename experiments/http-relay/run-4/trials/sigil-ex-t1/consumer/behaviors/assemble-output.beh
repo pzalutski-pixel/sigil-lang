@@ -1,0 +1,161 @@
+BEHAVIOR assemble-output
+
+DESCRIPTION
+  Builds the relay output: 19-char timestamp, a space, "PROCESSED BY CONSUMER",
+  a newline (0x0A), then the request body. The body is whatever follows the
+  first CRLFCRLF (0x0D0A0D0A) header terminator in the raw HTTP request.
+
+CONTRACT
+  INPUT timestamp bytes 32
+  INPUT request bytes 65536
+  INPUT request_length int 8
+  OUTPUT out bytes 65536
+  OUTPUT out_length int 8
+  GUARANTEES writes_output
+
+HASH 242de99a
+
+IMPLEMENTATION
+  outp = ALLOC 8 int
+  STORE outp 0 8
+
+  # Copy the 19-character timestamp (YYYY-MM-DD HH:MM:SS) into out[0..18].
+  ti = ALLOC 8 int
+  STORE ti 0 8
+
+  LABEL copy_ts
+    t = LOAD ti 8
+    done_ts = IGE t 19 8
+    BRANCH done_ts end_ts copy_ts_byte
+
+  LABEL copy_ts_byte
+    t = LOAD ti 8
+    tb = LOAD timestamp 1 t
+    op = LOAD outp 8
+    STORE out tb 1 op
+    op2 = IADD op 1 8
+    STORE outp op2 8
+    t2 = IADD t 1 8
+    STORE ti t2 8
+    JUMP copy_ts
+
+  LABEL end_ts
+    # Append the framing: " PROCESSED BY CONSUMER\n"
+    op = LOAD outp 8
+    STORE out 32 1 op
+    op = IADD op 1 8
+    STORE out 80 1 op
+    op = IADD op 1 8
+    STORE out 82 1 op
+    op = IADD op 1 8
+    STORE out 79 1 op
+    op = IADD op 1 8
+    STORE out 67 1 op
+    op = IADD op 1 8
+    STORE out 69 1 op
+    op = IADD op 1 8
+    STORE out 83 1 op
+    op = IADD op 1 8
+    STORE out 83 1 op
+    op = IADD op 1 8
+    STORE out 69 1 op
+    op = IADD op 1 8
+    STORE out 68 1 op
+    op = IADD op 1 8
+    STORE out 32 1 op
+    op = IADD op 1 8
+    STORE out 66 1 op
+    op = IADD op 1 8
+    STORE out 89 1 op
+    op = IADD op 1 8
+    STORE out 32 1 op
+    op = IADD op 1 8
+    STORE out 67 1 op
+    op = IADD op 1 8
+    STORE out 79 1 op
+    op = IADD op 1 8
+    STORE out 78 1 op
+    op = IADD op 1 8
+    STORE out 83 1 op
+    op = IADD op 1 8
+    STORE out 85 1 op
+    op = IADD op 1 8
+    STORE out 77 1 op
+    op = IADD op 1 8
+    STORE out 69 1 op
+    op = IADD op 1 8
+    STORE out 82 1 op
+    op = IADD op 1 8
+    STORE out 10 1 op
+    op = IADD op 1 8
+    STORE outp op 8
+
+    # Find the body: first CRLFCRLF in the request, body starts 4 bytes after.
+    bs = ALLOC 8 int
+    STORE bs 0 8
+    rl = LOAD request_length 8
+
+  LABEL find_sep
+    s = LOAD bs 8
+    s3 = IADD s 3 8
+    over = IGE s3 rl 8
+    BRANCH over no_body check_sep
+
+  LABEL check_sep
+    s = LOAD bs 8
+    c0 = LOAD request 1 s
+    p1 = IADD s 1 8
+    c1 = LOAD request 1 p1
+    p2 = IADD s 2 8
+    c2 = LOAD request 1 p2
+    p3 = IADD s 3 8
+    c3 = LOAD request 1 p3
+    is_cr0 = IEQ c0 13 1
+    is_lf0 = IEQ c1 10 1
+    is_cr1 = IEQ c2 13 1
+    is_lf1 = IEQ c3 10 1
+    a0 = AND is_cr0 is_lf0 1
+    a1 = AND is_cr1 is_lf1 1
+    is_sep = AND a0 a1 1
+    BRANCH is_sep found_sep inc_sep
+
+  LABEL inc_sep
+    s = LOAD bs 8
+    s2 = IADD s 1 8
+    STORE bs s2 8
+    JUMP find_sep
+
+  LABEL found_sep
+    s = LOAD bs 8
+    body_start = IADD s 4 8
+    STORE bs body_start 8
+    JUMP copy_body
+
+  LABEL no_body
+    # No header terminator found: body is empty.
+    STORE bs rl 8
+
+  LABEL copy_body
+    bi = LOAD bs 8
+    rl2 = LOAD request_length 8
+    done_body = IGE bi rl2 8
+    BRANCH done_body finish copy_body_byte
+
+  LABEL copy_body_byte
+    bi = LOAD bs 8
+    bb = LOAD request 1 bi
+    op = LOAD outp 8
+    STORE out bb 1 op
+    op2 = IADD op 1 8
+    STORE outp op2 8
+    bi2 = IADD bi 1 8
+    STORE bs bi2 8
+    JUMP copy_body
+
+  LABEL finish
+    total = LOAD outp 8
+    STORE out_length total 8
+    FREE outp
+    FREE ti
+    FREE bs
+END

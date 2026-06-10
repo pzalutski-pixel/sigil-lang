@@ -1,0 +1,63 @@
+BEHAVIOR hex-decode
+
+DESCRIPTION
+  Decodes a hex string (first len chars; accepts 0-9 a-f A-F) into raw bytes.
+  Two hex chars per output byte; a trailing odd char is ignored. result is
+  null-terminated after the decoded bytes; length is the decoded byte count.
+
+CONTRACT
+  INPUT s bytes 131072
+  INPUT len int 8
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 4f58ef3a
+
+IMPLEMENTATION
+  STORE result 0 1 0
+  lenv = LOAD len 8
+  i = 0
+  out = 0
+  nibcount = 0
+  curbyte = 0
+
+  LABEL loop
+    done = IGE i lenv 8
+    BRANCH done fin body
+  LABEL body
+    c = LOAD s 1 i
+    cu = AND c 255 8
+    isdig = ILE cu 57 8
+    BRANCH isdig digc alphac
+  LABEL digc
+    v = ISUB cu 48 8
+    JUMP haveval
+  LABEL alphac
+    isl = IGE cu 97 8
+    BRANCH isl lowc upc
+  LABEL lowc
+    v = ISUB cu 87 8
+    JUMP haveval
+  LABEL upc
+    v = ISUB cu 55 8
+  LABEL haveval
+    iszero = IEQ nibcount 0 8
+    BRANCH iszero firstnib secondnib
+  LABEL firstnib
+    curbyte = SHL v 4 8
+    nibcount = 1
+    JUMP advance
+  LABEL secondnib
+    curbyte = OR curbyte v 8
+    STORE result curbyte 1 out
+    out = IADD out 1 8
+    nibcount = 0
+  LABEL advance
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL fin
+    STORE result 0 1 out
+    STORE length out 8
+END

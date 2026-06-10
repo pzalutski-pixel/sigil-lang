@@ -1,0 +1,134 @@
+BEHAVIOR parse
+
+DESCRIPTION
+  Parses JSON string into internal representation.
+  Supports objects, arrays, strings, numbers, booleans, null.
+  Returns parsed structure with type tags for each element.
+
+  Internal format:
+  - Header: status (1), root_type (1), element_count (2)
+  - Elements: type (1), offset (2), length (2) per element
+
+CONTRACT
+  INPUT json bytes 8192
+  OUTPUT parsed bytes 4096
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH cea7f58b
+
+IMPLEMENTATION
+  pos = ALLOC 8 int
+  STORE pos 0 8
+  out_pos = ALLOC 8 int
+  STORE out_pos 4 8
+  elem_count = ALLOC 8 int
+  STORE elem_count 0 8
+
+  LABEL skip_ws
+    p = LOAD pos 8
+    byte = LOAD json 1 p
+    is_space = IEQ byte 32 1
+    is_tab = IEQ byte 9 1
+    is_nl = IEQ byte 10 1
+    is_cr = IEQ byte 13 1
+    ws1 = OR is_space is_tab 1
+    ws2 = OR is_nl is_cr 1
+    is_ws = OR ws1 ws2 1
+    BRANCH is_ws inc_pos check_type
+
+  LABEL inc_pos
+    p = LOAD pos 8
+    new_p = IADD p 1 8
+    STORE pos new_p 8
+    JUMP skip_ws
+
+  LABEL check_type
+    p = LOAD pos 8
+    byte = LOAD json 1 p
+    is_obj = IEQ byte 123 1
+    BRANCH is_obj parse_object check_array
+
+  LABEL check_array
+    is_arr = IEQ byte 91 1
+    BRANCH is_arr parse_array check_string
+
+  LABEL check_string
+    is_str = IEQ byte 34 1
+    BRANCH is_str parse_string check_number
+
+  LABEL check_number
+    is_minus = IEQ byte 45 1
+    ge_zero = IGE byte 48 1
+    le_nine = ILE byte 57 1
+    is_digit = AND ge_zero le_nine 1
+    is_number = OR is_minus is_digit 1
+    BRANCH is_number parse_number parse_error
+
+  LABEL parse_object
+    STORE parsed 1 1 0
+    STORE parsed 1 1 1
+    op = LOAD out_pos 8
+    p = LOAD pos 8
+    STORE parsed 1 1 op
+    next = IADD op 1 8
+    STORE parsed p 2 next
+    ec = LOAD elem_count 8
+    new_ec = IADD ec 1 8
+    STORE elem_count new_ec 8
+    JUMP success
+
+  LABEL parse_array
+    STORE parsed 1 1 0
+    STORE parsed 2 1 1
+    op = LOAD out_pos 8
+    p = LOAD pos 8
+    STORE parsed 2 1 op
+    next = IADD op 1 8
+    STORE parsed p 2 next
+    ec = LOAD elem_count 8
+    new_ec = IADD ec 1 8
+    STORE elem_count new_ec 8
+    JUMP success
+
+  LABEL parse_string
+    STORE parsed 1 1 0
+    STORE parsed 3 1 1
+    op = LOAD out_pos 8
+    p = LOAD pos 8
+    STORE parsed 3 1 op
+    next = IADD op 1 8
+    STORE parsed p 2 next
+    ec = LOAD elem_count 8
+    new_ec = IADD ec 1 8
+    STORE elem_count new_ec 8
+    JUMP success
+
+  LABEL parse_number
+    STORE parsed 1 1 0
+    STORE parsed 4 1 1
+    op = LOAD out_pos 8
+    p = LOAD pos 8
+    STORE parsed 4 1 op
+    next = IADD op 1 8
+    STORE parsed p 2 next
+    ec = LOAD elem_count 8
+    new_ec = IADD ec 1 8
+    STORE elem_count new_ec 8
+    JUMP success
+
+  LABEL parse_error
+    STORE parsed 0 1 0
+    STORE status -1 8
+    JUMP done
+
+  LABEL success
+    ec = LOAD elem_count 8
+    STORE parsed ec 2 2
+    STORE status 0 8
+
+  LABEL done
+    FREE pos
+    FREE out_pos
+    FREE elem_count
+END

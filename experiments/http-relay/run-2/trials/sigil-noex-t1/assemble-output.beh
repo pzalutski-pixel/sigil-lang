@@ -1,0 +1,87 @@
+BEHAVIOR assemble-output
+
+DESCRIPTION
+  Builds the output file contents: timestamp + " PROCESSED BY CONSUMER\n" + body.
+  The received buffer is a raw HTTP request whose body starts at offset 19
+  (after the fixed "POST / HTTP/1.0\r\n\r\n" prefix produced by the producer).
+
+CONTRACT
+  INPUT ts bytes 32
+  INPUT recv bytes 65536
+  INPUT recv_len int 8
+  OUTPUT result bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH 5a499136
+
+IMPLEMENTATION
+  ctr = ALLOC 8 int
+
+  # Copy 19-byte timestamp into result[0..18]
+  STORE ctr 0 8
+  JUMP ts_check
+
+  LABEL ts_check
+  ti = LOAD ctr 8
+  tcond = ILT ti 19 8
+  BRANCH tcond ts_body ts_done
+
+  LABEL ts_body
+  tb = LOAD ts 1 ti
+  STORE result tb 1 ti
+  tn = IADD ti 1 8
+  STORE ctr tn 8
+  JUMP ts_check
+
+  LABEL ts_done
+  # Write " PROCESSED BY CONSUMER\n" at offset 19 (23 bytes)
+  STORE result 32 1 19
+  STORE result 80 1 20
+  STORE result 82 1 21
+  STORE result 79 1 22
+  STORE result 67 1 23
+  STORE result 69 1 24
+  STORE result 83 1 25
+  STORE result 83 1 26
+  STORE result 69 1 27
+  STORE result 68 1 28
+  STORE result 32 1 29
+  STORE result 66 1 30
+  STORE result 89 1 31
+  STORE result 32 1 32
+  STORE result 67 1 33
+  STORE result 79 1 34
+  STORE result 78 1 35
+  STORE result 83 1 36
+  STORE result 85 1 37
+  STORE result 77 1 38
+  STORE result 69 1 39
+  STORE result 82 1 40
+  STORE result 10 1 41
+
+  # Copy body: recv[19 .. recv_len] -> result[42 ..]
+  rlen = LOAD recv_len 8
+  blen = ISUB rlen 19 8
+  STORE ctr 0 8
+  JUMP body_check
+
+  LABEL body_check
+  bi = LOAD ctr 8
+  bcond = ILT bi blen 8
+  BRANCH bcond body_body body_done
+
+  LABEL body_body
+  srcoff = IADD bi 19 8
+  bb = LOAD recv 1 srcoff
+  dstoff = IADD bi 42 8
+  STORE result bb 1 dstoff
+  bn = IADD bi 1 8
+  STORE ctr bn 8
+  JUMP body_check
+
+  LABEL body_done
+  total = IADD blen 42 8
+  STORE out_len total 8
+  FREE ctr
+END

@@ -1,0 +1,17 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  Reads input.txt and POSTs its contents to localhost:9816.
+
+ENTRY
+  CALL path-input -> ipath, ipathlen
+  CALL open ipath 0 -> ifd
+  CALL read ifd 65536 -> ibuf, ilen
+  CALL close ifd -> icstat
+  CALL make-request ibuf ilen -> reqbuf, reqlen
+  CALL socket 2 1 -> fd
+  CALL addr-client -> addr, alen
+  CALL connect fd addr alen -> cstat
+  CALL send fd reqbuf reqlen -> sn
+  CALL close-socket fd -> scstat
+END_EXECUTABLE

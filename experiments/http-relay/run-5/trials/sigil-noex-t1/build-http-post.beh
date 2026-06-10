@@ -1,0 +1,140 @@
+BEHAVIOR build-http-post
+
+DESCRIPTION
+  Assembles a well-formed HTTP/1.1 POST request from a body and its length.
+  Writes the fixed request line + headers, the decimal Content-Length digits,
+  the CRLFCRLF header terminator, then the body, into out, with the total
+  byte count in out_len. Pure byte assembly via primitives.
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  INPUT clen_str bytes 32
+  INPUT clen_len int 8
+  OUTPUT out bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH f30b14ab
+
+IMPLEMENTATION
+  pos = ALLOC 8 int
+  STORE pos 0 8
+
+  # int INPUT handles -> read their values
+  blen = LOAD body_len 8
+  clen = LOAD clen_len 8
+
+  # --- "POST / HTTP/1.1\r\n" (17 bytes) ---
+  STORE out 80 1 0
+  STORE out 79 1 1
+  STORE out 83 1 2
+  STORE out 84 1 3
+  STORE out 32 1 4
+  STORE out 47 1 5
+  STORE out 32 1 6
+  STORE out 72 1 7
+  STORE out 84 1 8
+  STORE out 84 1 9
+  STORE out 80 1 10
+  STORE out 47 1 11
+  STORE out 49 1 12
+  STORE out 46 1 13
+  STORE out 49 1 14
+  STORE out 13 1 15
+  STORE out 10 1 16
+
+  # --- "Host: localhost\r\n" (17 bytes) at offset 17 ---
+  STORE out 72 1 17
+  STORE out 111 1 18
+  STORE out 115 1 19
+  STORE out 116 1 20
+  STORE out 58 1 21
+  STORE out 32 1 22
+  STORE out 108 1 23
+  STORE out 111 1 24
+  STORE out 99 1 25
+  STORE out 97 1 26
+  STORE out 108 1 27
+  STORE out 104 1 28
+  STORE out 111 1 29
+  STORE out 115 1 30
+  STORE out 116 1 31
+  STORE out 13 1 32
+  STORE out 10 1 33
+
+  # --- "Content-Length: " (16 bytes) at offset 34 ---
+  STORE out 67 1 34
+  STORE out 111 1 35
+  STORE out 110 1 36
+  STORE out 116 1 37
+  STORE out 101 1 38
+  STORE out 110 1 39
+  STORE out 116 1 40
+  STORE out 45 1 41
+  STORE out 76 1 42
+  STORE out 101 1 43
+  STORE out 110 1 44
+  STORE out 103 1 45
+  STORE out 116 1 46
+  STORE out 104 1 47
+  STORE out 58 1 48
+  STORE out 32 1 49
+
+  STORE pos 50 8
+
+  # --- content-length digits ---
+  di = ALLOC 8 int
+  STORE di 0 8
+  LABEL clen_loop
+    dv = LOAD di 8
+    ddone = IGE dv clen 8
+    BRANCH ddone clen_done clen_body
+  LABEL clen_body
+    dc = LOAD clen_str 1 dv
+    p = LOAD pos 8
+    STORE out dc 1 p
+    pn = IADD p 1 8
+    STORE pos pn 8
+    dn = IADD dv 1 8
+    STORE di dn 8
+    JUMP clen_loop
+  LABEL clen_done
+  FREE di
+
+  # --- "\r\n\r\n" header terminator ---
+  p1 = LOAD pos 8
+  STORE out 13 1 p1
+  p2 = IADD p1 1 8
+  STORE out 10 1 p2
+  p3 = IADD p1 2 8
+  STORE out 13 1 p3
+  p4 = IADD p1 3 8
+  STORE out 10 1 p4
+  pafter = IADD p1 4 8
+  STORE pos pafter 8
+
+  # --- body bytes ---
+  bi = ALLOC 8 int
+  STORE bi 0 8
+  LABEL body_loop
+    bv = LOAD bi 8
+    bdone = IGE bv blen 8
+    BRANCH bdone body_done body_copy
+  LABEL body_copy
+    bc = LOAD body 1 bv
+    pp = LOAD pos 8
+    STORE out bc 1 pp
+    ppn = IADD pp 1 8
+    STORE pos ppn 8
+    bn = IADD bv 1 8
+    STORE bi bn 8
+    JUMP body_loop
+  LABEL body_done
+  FREE bi
+
+  final = LOAD pos 8
+  STORE out_len final 8
+
+  FREE pos
+END

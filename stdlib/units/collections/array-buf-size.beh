@@ -1,0 +1,20 @@
+BEHAVIOR array-buf-size
+
+DESCRIPTION
+  Bytes a caller must provide to back an int array of `cap` 8-byte elements:
+  16-byte header ([len:8][cap:8]) + cap*8 data. Use it to size the MEMORY
+  region (or any caller-owned buffer) that array-* operates on.
+
+CONTRACT
+  INPUT cap int 8
+  OUTPUT size int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 694a01ba
+
+IMPLEMENTATION
+  cv = LOAD cap 8
+  e = IMUL cv 8 8
+  s = IADD e 16 8
+  STORE size s 8
+END

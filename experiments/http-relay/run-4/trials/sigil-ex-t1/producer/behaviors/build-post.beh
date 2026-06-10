@@ -1,0 +1,138 @@
+BEHAVIOR build-post
+
+DESCRIPTION
+  Builds a minimal HTTP/1.1 POST request:
+    POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: <clen>\r\n\r\n<body>
+  clen is the decimal Content-Length passed as digits (clen_str / clen_len);
+  body is the raw request body (body / body_length).
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_length int 8
+  INPUT clen_str bytes 32
+  INPUT clen_len int 8
+  OUTPUT request bytes 65536
+  OUTPUT request_length int 8
+  GUARANTEES writes_output
+
+IMPLEMENTATION
+  op = ALLOC 8 int
+  STORE op 0 8
+
+  # "POST / HTTP/1.1\r\n"
+  STORE request 80 1 0
+  STORE request 79 1 1
+  STORE request 83 1 2
+  STORE request 84 1 3
+  STORE request 32 1 4
+  STORE request 47 1 5
+  STORE request 32 1 6
+  STORE request 72 1 7
+  STORE request 84 1 8
+  STORE request 84 1 9
+  STORE request 80 1 10
+  STORE request 47 1 11
+  STORE request 49 1 12
+  STORE request 46 1 13
+  STORE request 49 1 14
+  STORE request 13 1 15
+  STORE request 10 1 16
+  # "Host: localhost\r\n"
+  STORE request 72 1 17
+  STORE request 111 1 18
+  STORE request 115 1 19
+  STORE request 116 1 20
+  STORE request 58 1 21
+  STORE request 32 1 22
+  STORE request 108 1 23
+  STORE request 111 1 24
+  STORE request 99 1 25
+  STORE request 97 1 26
+  STORE request 108 1 27
+  STORE request 104 1 28
+  STORE request 111 1 29
+  STORE request 115 1 30
+  STORE request 116 1 31
+  STORE request 13 1 32
+  STORE request 10 1 33
+  # "Content-Length: "
+  STORE request 67 1 34
+  STORE request 111 1 35
+  STORE request 110 1 36
+  STORE request 116 1 37
+  STORE request 101 1 38
+  STORE request 110 1 39
+  STORE request 116 1 40
+  STORE request 45 1 41
+  STORE request 76 1 42
+  STORE request 101 1 43
+  STORE request 110 1 44
+  STORE request 103 1 45
+  STORE request 116 1 46
+  STORE request 104 1 47
+  STORE request 58 1 48
+  STORE request 32 1 49
+  STORE op 50 8
+
+  # Content-Length digits
+  ci = ALLOC 8 int
+  STORE ci 0 8
+
+  LABEL copy_clen
+    c = LOAD ci 8
+    cl = LOAD clen_len 8
+    done_clen = IGE c cl 8
+    BRANCH done_clen end_clen copy_clen_byte
+
+  LABEL copy_clen_byte
+    c = LOAD ci 8
+    cb = LOAD clen_str 1 c
+    p = LOAD op 8
+    STORE request cb 1 p
+    p2 = IADD p 1 8
+    STORE op p2 8
+    c2 = IADD c 1 8
+    STORE ci c2 8
+    JUMP copy_clen
+
+  LABEL end_clen
+    # "\r\n\r\n"
+    p = LOAD op 8
+    STORE request 13 1 p
+    p = IADD p 1 8
+    STORE request 10 1 p
+    p = IADD p 1 8
+    STORE request 13 1 p
+    p = IADD p 1 8
+    STORE request 10 1 p
+    p = IADD p 1 8
+    STORE op p 8
+
+    # Body
+    bi = ALLOC 8 int
+    STORE bi 0 8
+
+  LABEL copy_body
+    b = LOAD bi 8
+    bl = LOAD body_length 8
+    done_body = IGE b bl 8
+    BRANCH done_body finish copy_body_byte
+
+  LABEL copy_body_byte
+    b = LOAD bi 8
+    bb = LOAD body 1 b
+    p = LOAD op 8
+    STORE request bb 1 p
+    p2 = IADD p 1 8
+    STORE op p2 8
+    b2 = IADD b 1 8
+    STORE bi b2 8
+    JUMP copy_body
+
+  LABEL finish
+    total = LOAD op 8
+    STORE request_length total 8
+    FREE op
+    FREE ci
+    FREE bi
+END

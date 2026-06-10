@@ -1,0 +1,24 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  Reads input.txt and POSTs its contents to localhost:9813.
+  Opens a TCP connection and sends the file body as the POST payload.
+
+ENTRY
+  sock = CALL socket 2 1
+  a = CALL build-addr
+  conn = CALL connect sock.fd a.addr a.addr_len
+  DISCARD conn.status
+
+  path = "input.txt"
+  f = CALL open path 0
+  rd = CALL read f.fd 65536
+  sent = CALL send sock.fd rd.buffer rd.bytes_read
+  DISCARD sent.bytes_sent
+  DISCARD rd.bytes_read
+
+  cf = CALL close f.fd
+  DISCARD cf.status
+  cs = CALL close-socket sock.fd
+  DISCARD cs.status
+END_EXECUTABLE

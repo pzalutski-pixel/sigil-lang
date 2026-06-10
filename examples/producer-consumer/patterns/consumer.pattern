@@ -1,0 +1,37 @@
+PATTERN consumer
+
+MEMORY
+  chan_handle bytes 8
+  expected_count int 8
+  consumed int 8
+
+ON_CREATE
+  # Initialize consumed counter to 0
+  STORE consumed 0 8
+
+  # Get expected count
+  expected = LOAD expected_count 8
+
+  LABEL consume_loop
+    current = LOAD consumed 8
+    done_check = IGE current expected 8
+    BRANCH done_check consume_done receive_value
+
+  LABEL receive_value
+    # Receive from channel
+    chan_id = LOAD chan_handle 8
+    value = CHANNEL_RECEIVE chan_id
+
+    # Increment consumed counter
+    current = LOAD consumed 8
+    one_h = ALLOC 8 int
+    STORE one_h 1 8
+    one = LOAD one_h 8
+    FREE one_h
+    next = IADD current one 8
+    STORE consumed next 8
+    JUMP consume_loop
+
+  LABEL consume_done
+
+END_PATTERN

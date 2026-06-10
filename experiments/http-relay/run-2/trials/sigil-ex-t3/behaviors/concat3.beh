@@ -1,0 +1,89 @@
+BEHAVIOR concat3
+
+DESCRIPTION
+  Concatenates three byte sequences a + b + c into out.
+  Lengths given explicitly. Writes out_len with total length.
+
+CONTRACT
+  INPUT a bytes 65536
+  INPUT a_len int 8
+  INPUT b bytes 65536
+  INPUT b_len int 8
+  INPUT c bytes 65536
+  INPUT c_len int 8
+  OUTPUT out bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH 594aea6a
+
+IMPLEMENTATION
+  i = ALLOC 8 int
+  pos = ALLOC 8 int
+  STORE pos 0 8
+
+  # ensure out is written on all paths
+  STORE out 0 1 0
+
+  # copy a
+  la = LOAD a_len 8
+  STORE i 0 8
+  LABEL loop_a
+    idx = LOAD i 8
+    done = IGE idx la 8
+    BRANCH done end_a copy_a
+  LABEL copy_a
+    idx = LOAD i 8
+    byte = LOAD a 1 idx
+    p = LOAD pos 8
+    STORE out byte 1 p
+    np = IADD p 1 8
+    STORE pos np 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP loop_a
+  LABEL end_a
+
+  # copy b
+  lb = LOAD b_len 8
+  STORE i 0 8
+  LABEL loop_b
+    idx = LOAD i 8
+    done = IGE idx lb 8
+    BRANCH done end_b copy_b
+  LABEL copy_b
+    idx = LOAD i 8
+    byte = LOAD b 1 idx
+    p = LOAD pos 8
+    STORE out byte 1 p
+    np = IADD p 1 8
+    STORE pos np 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP loop_b
+  LABEL end_b
+
+  # copy c
+  lc = LOAD c_len 8
+  STORE i 0 8
+  LABEL loop_c
+    idx = LOAD i 8
+    done = IGE idx lc 8
+    BRANCH done end_c copy_c
+  LABEL copy_c
+    idx = LOAD i 8
+    byte = LOAD c 1 idx
+    p = LOAD pos 8
+    STORE out byte 1 p
+    np = IADD p 1 8
+    STORE pos np 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP loop_c
+  LABEL end_c
+
+  p = LOAD pos 8
+  STORE out_len p 8
+  FREE i
+  FREE pos
+END

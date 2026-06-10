@@ -1,0 +1,17 @@
+BEHAVIOR array-len
+
+DESCRIPTION
+  Returns the number of elements currently stored in an int array (its len
+  field), as set by array-init (0) and array-push.
+
+CONTRACT
+  INPUT arr bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH c80c400a
+
+IMPLEMENTATION
+  l = LOAD arr 8 0
+  STORE length l 8
+END

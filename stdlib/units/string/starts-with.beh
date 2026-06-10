@@ -1,0 +1,40 @@
+BEHAVIOR starts-with
+
+DESCRIPTION
+  1 if the null-terminated string s begins with the null-terminated prefix,
+  else 0. Byte-by-byte (not unicode-aware).
+
+CONTRACT
+  INPUT s bytes 65536
+  INPUT prefix bytes 256
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 1c7d1e14
+
+IMPLEMENTATION
+  i = 0
+
+  LABEL loop
+    pc = LOAD prefix 1 i
+    pcz = IEQ pc 0 1
+    BRANCH pcz allmatch compare
+
+  LABEL compare
+    sc = LOAD s 1 i
+    eq = IEQ sc pc 1
+    BRANCH eq advance mismatch
+
+  LABEL advance
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL mismatch
+    STORE result 0 8
+    JUMP done
+
+  LABEL allmatch
+    STORE result 1 8
+
+  LABEL done
+END

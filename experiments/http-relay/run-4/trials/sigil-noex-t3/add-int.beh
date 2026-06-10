@@ -1,0 +1,20 @@
+BEHAVIOR add-int
+
+DESCRIPTION
+  Adds two signed 64-bit integers and returns the sum. Used by compositions to
+  compute lengths (which may not compute themselves).
+
+CONTRACT
+  INPUT a int 8
+  INPUT b int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 506d7b8d
+
+IMPLEMENTATION
+  va = LOAD a 8
+  vb = LOAD b 8
+  s = IADD va vb 8
+  STORE result s 8
+END

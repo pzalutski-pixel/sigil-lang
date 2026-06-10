@@ -1,0 +1,9 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  HTTP file relay consumer: listens on port 9814, processes one POST,
+  writes output.txt with a timestamped header line before the body.
+
+ENTRY
+  CALL main -> status
+END_EXECUTABLE

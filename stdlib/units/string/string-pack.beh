@@ -1,0 +1,31 @@
+BEHAVIOR string-pack
+
+DESCRIPTION
+  Writes a length-prefixed string image ([len:8-byte LE][content]) of the first
+  len bytes of src into the caller-owned buffer buf. The leaf half of
+  bytes-to-string: buf must outlive any string handle pointing at it, so the
+  caller owns it (e.g. pattern MEMORY). buf needs len+8 bytes.
+
+CONTRACT
+  INPUT src bytes 65536
+  INPUT len int 8
+  INPUT buf bytes 65544
+
+HASH 4bb1e8d7
+
+IMPLEMENTATION
+  lv = LOAD len 8
+  STORE buf lv 8 0
+  i = 0
+  LABEL loop
+    d = IGE i lv 8
+    BRANCH d done body
+  LABEL body
+    b = LOAD src 1 i
+    b = AND b 255 8
+    off = IADD i 8 8
+    STORE buf b 1 off
+    i = IADD i 1 8
+    JUMP loop
+  LABEL done
+END

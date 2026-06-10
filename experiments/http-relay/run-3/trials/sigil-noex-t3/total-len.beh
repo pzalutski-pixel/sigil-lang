@@ -1,0 +1,18 @@
+BEHAVIOR total-len
+
+DESCRIPTION
+  Computes total output length: header (42) + body_len.
+  Header = 19-byte timestamp + 23-byte " PROCESSED BY CONSUMER\n".
+
+CONTRACT
+  INPUT body_len int 8
+  OUTPUT total int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 8fd4b0c9
+
+IMPLEMENTATION
+  bl = LOAD body_len 8
+  t1 = IADD bl 42 8
+  STORE total t1 8
+END

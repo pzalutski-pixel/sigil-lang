@@ -1,0 +1,64 @@
+PATTERN kvstore
+
+MEMORY
+  # The pattern owns the store as persistent MEMORY (spec 3.3). Sized for a
+  # 64-slot stdlib hash map: map-buf-size(64) = 8 + 64*337 = 21576 bytes.
+  store bytes 21576
+
+ON_CREATE
+  # A key-value store built on the stdlib collections hash map (map-*),
+  # replacing the former hand-rolled slot table. The pattern owns the buffer;
+  # map-init/put/get/delete operate on it.
+  CALL map-init store 64
+
+  kn = "name"
+  bkn = CALL string-to-bytes kn
+  vn = "Sigil"
+  bvn = CALL string-to-bytes vn
+  p1 = CALL map-put store bkn.data bkn.length bvn.data bvn.length
+  DISCARD p1
+
+  kv = "version"
+  bkv = CALL string-to-bytes kv
+  vv = "2.0"
+  bvv = CALL string-to-bytes vv
+  p2 = CALL map-put store bkv.data bkv.length bvv.data bvv.length
+  DISCARD p2
+
+  ka = "author"
+  bka = CALL string-to-bytes ka
+  va = "anon"
+  bva = CALL string-to-bytes va
+  p3 = CALL map-put store bka.data bka.length bva.data bva.length
+  DISCARD p3
+
+  g = CALL map-get store bkn.data bkn.length
+  BRANCH g.found print_found print_not_found
+
+  LABEL print_found
+    CALL println-bytes g.val g.vlen
+    JUMP after_print
+  LABEL print_not_found
+    DISCARD g.val
+    DISCARD g.vlen
+    nf_msg = "Key not found"
+    CALL println nf_msg
+
+  LABEL after_print
+    d = CALL map-delete store bka.data bka.length
+    DISCARD d.found
+    g2 = CALL map-get store bka.data bka.length
+    BRANCH g2.found still_there print_deleted
+
+  LABEL still_there
+    DISCARD g2.val
+    DISCARD g2.vlen
+    JUMP after_deleted
+  LABEL print_deleted
+    DISCARD g2.val
+    DISCARD g2.vlen
+    dc_msg = "Deleted correctly"
+    CALL println dc_msg
+
+  LABEL after_deleted
+END_PATTERN

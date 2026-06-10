@@ -1,0 +1,11 @@
+BEHAVIOR pc-print-wait-prod
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Waiting for producer..."
+  CALL println msg
+END

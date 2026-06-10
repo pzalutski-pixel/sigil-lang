@@ -1,0 +1,263 @@
+BEHAVIOR format-time
+
+DESCRIPTION
+  Formats Unix timestamp as "YYYY-MM-DD HH:MM:SS" string.
+  Pure computation - converts epoch milliseconds to date components.
+  Output is 19 characters plus null terminator.
+
+CONTRACT
+  INPUT timestamp int 8
+  OUTPUT formatted bytes 32
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 83ebda2d
+
+IMPLEMENTATION
+  ts = LOAD timestamp 8
+  # Convert ms to seconds
+  secs = IDIV ts 1000 8
+
+  # Seconds in a day = 86400
+  # Extract time of day
+  day_secs = IMOD secs 86400 8
+  hour = IDIV day_secs 3600 8
+  remain = IMOD day_secs 3600 8
+  minute = IDIV remain 60 8
+  second = IMOD remain 60 8
+
+  # Total days since epoch
+  total_days = IDIV secs 86400 8
+
+  # Calculate year (starting from 1970)
+  year = ALLOC 8 int
+  STORE year 1970 8
+  days_left = ALLOC 8 int
+  STORE days_left total_days 8
+
+  LABEL year_loop
+    y = LOAD year 8
+    dl = LOAD days_left 8
+    # Check if leap year: divisible by 4 and (not by 100 or by 400)
+    rem4 = IMOD y 4 8
+    is_div4 = IEQ rem4 0 8
+    rem100 = IMOD y 100 8
+    is_div100 = IEQ rem100 0 8
+    rem400 = IMOD y 400 8
+    is_div400 = IEQ rem400 0 8
+    # leap = div4 && (!div100 || div400)
+    not_div100 = IEQ is_div100 0 1
+    leap_cond = OR not_div100 is_div400 1
+    is_leap = AND is_div4 leap_cond 1
+    # days_in_year = 365 + leap
+    days_in_year = IADD 365 is_leap 8
+    # Check if we have enough days
+    has_year = IGE dl days_in_year 8
+    BRANCH has_year subtract_year done_year
+
+  LABEL subtract_year
+    dl = LOAD days_left 8
+    y = LOAD year 8
+    # Recalculate days_in_year for subtraction
+    rem4 = IMOD y 4 8
+    is_div4 = IEQ rem4 0 8
+    rem100 = IMOD y 100 8
+    is_div100 = IEQ rem100 0 8
+    rem400 = IMOD y 400 8
+    is_div400 = IEQ rem400 0 8
+    not_div100 = IEQ is_div100 0 1
+    leap_cond = OR not_div100 is_div400 1
+    is_leap = AND is_div4 leap_cond 1
+    days_in_year = IADD 365 is_leap 8
+    new_dl = ISUB dl days_in_year 8
+    STORE days_left new_dl 8
+    new_y = IADD y 1 8
+    STORE year new_y 8
+    JUMP year_loop
+
+  LABEL done_year
+    # Now calculate month and day
+    y = LOAD year 8
+    dl = LOAD days_left 8
+    # Check leap year for this year
+    rem4 = IMOD y 4 8
+    is_div4 = IEQ rem4 0 8
+    rem100 = IMOD y 100 8
+    is_div100 = IEQ rem100 0 8
+    rem400 = IMOD y 400 8
+    is_div400 = IEQ rem400 0 8
+    not_div100 = IEQ is_div100 0 1
+    leap_cond = OR not_div100 is_div400 1
+    is_leap = AND is_div4 leap_cond 1
+
+    month = ALLOC 8 int
+    STORE month 1 8
+
+    # Days in months: 31,28/29,31,30,31,30,31,31,30,31,30,31
+    # January
+    jan_done = ILT dl 31 8
+    BRANCH jan_done set_day sub_jan
+  LABEL sub_jan
+    dl = ISUB dl 31 8
+    STORE days_left dl 8
+    STORE month 2 8
+    # February
+    feb_days = IADD 28 is_leap 8
+    feb_done = ILT dl feb_days 8
+    BRANCH feb_done set_day sub_feb
+  LABEL sub_feb
+    dl = LOAD days_left 8
+    feb_days = IADD 28 is_leap 8
+    dl = ISUB dl feb_days 8
+    STORE days_left dl 8
+    STORE month 3 8
+    # March
+    mar_done = ILT dl 31 8
+    BRANCH mar_done set_day sub_mar
+  LABEL sub_mar
+    dl = LOAD days_left 8
+    dl = ISUB dl 31 8
+    STORE days_left dl 8
+    STORE month 4 8
+    # April
+    apr_done = ILT dl 30 8
+    BRANCH apr_done set_day sub_apr
+  LABEL sub_apr
+    dl = LOAD days_left 8
+    dl = ISUB dl 30 8
+    STORE days_left dl 8
+    STORE month 5 8
+    # May
+    may_done = ILT dl 31 8
+    BRANCH may_done set_day sub_may
+  LABEL sub_may
+    dl = LOAD days_left 8
+    dl = ISUB dl 31 8
+    STORE days_left dl 8
+    STORE month 6 8
+    # June
+    jun_done = ILT dl 30 8
+    BRANCH jun_done set_day sub_jun
+  LABEL sub_jun
+    dl = LOAD days_left 8
+    dl = ISUB dl 30 8
+    STORE days_left dl 8
+    STORE month 7 8
+    # July
+    jul_done = ILT dl 31 8
+    BRANCH jul_done set_day sub_jul
+  LABEL sub_jul
+    dl = LOAD days_left 8
+    dl = ISUB dl 31 8
+    STORE days_left dl 8
+    STORE month 8 8
+    # August
+    aug_done = ILT dl 31 8
+    BRANCH aug_done set_day sub_aug
+  LABEL sub_aug
+    dl = LOAD days_left 8
+    dl = ISUB dl 31 8
+    STORE days_left dl 8
+    STORE month 9 8
+    # September
+    sep_done = ILT dl 30 8
+    BRANCH sep_done set_day sub_sep
+  LABEL sub_sep
+    dl = LOAD days_left 8
+    dl = ISUB dl 30 8
+    STORE days_left dl 8
+    STORE month 10 8
+    # October
+    oct_done = ILT dl 31 8
+    BRANCH oct_done set_day sub_oct
+  LABEL sub_oct
+    dl = LOAD days_left 8
+    dl = ISUB dl 31 8
+    STORE days_left dl 8
+    STORE month 11 8
+    # November
+    nov_done = ILT dl 30 8
+    BRANCH nov_done set_day sub_nov
+  LABEL sub_nov
+    dl = LOAD days_left 8
+    dl = ISUB dl 30 8
+    STORE days_left dl 8
+    STORE month 12 8
+    # December - remaining days
+
+  LABEL set_day
+    dl = LOAD days_left 8
+    day = IADD dl 1 8
+    m = LOAD month 8
+    y = LOAD year 8
+
+    # Format: YYYY-MM-DD HH:MM:SS
+    # Year digits
+    y1000 = IDIV y 1000 8
+    y100r = IMOD y 1000 8
+    y100 = IDIV y100r 100 8
+    y10r = IMOD y100r 100 8
+    y10 = IDIV y10r 10 8
+    y1 = IMOD y10r 10 8
+
+    # Month digits
+    m10 = IDIV m 10 8
+    m1 = IMOD m 10 8
+
+    # Day digits
+    d10 = IDIV day 10 8
+    d1 = IMOD day 10 8
+
+    # Hour digits
+    h10 = IDIV hour 10 8
+    h1 = IMOD hour 10 8
+
+    # Minute digits
+    min10 = IDIV minute 10 8
+    min1 = IMOD minute 10 8
+
+    # Second digits
+    s10 = IDIV second 10 8
+    s1 = IMOD second 10 8
+
+    # Write formatted string (ASCII: 0=48, -=45, :=58, space=32)
+    c0 = IADD y1000 48 8
+    STORE formatted c0 1 0
+    c1 = IADD y100 48 8
+    STORE formatted c1 1 1
+    c2 = IADD y10 48 8
+    STORE formatted c2 1 2
+    c3 = IADD y1 48 8
+    STORE formatted c3 1 3
+    STORE formatted 45 1 4
+    c5 = IADD m10 48 8
+    STORE formatted c5 1 5
+    c6 = IADD m1 48 8
+    STORE formatted c6 1 6
+    STORE formatted 45 1 7
+    c8 = IADD d10 48 8
+    STORE formatted c8 1 8
+    c9 = IADD d1 48 8
+    STORE formatted c9 1 9
+    STORE formatted 32 1 10
+    c11 = IADD h10 48 8
+    STORE formatted c11 1 11
+    c12 = IADD h1 48 8
+    STORE formatted c12 1 12
+    STORE formatted 58 1 13
+    c14 = IADD min10 48 8
+    STORE formatted c14 1 14
+    c15 = IADD min1 48 8
+    STORE formatted c15 1 15
+    STORE formatted 58 1 16
+    c17 = IADD s10 48 8
+    STORE formatted c17 1 17
+    c18 = IADD s1 48 8
+    STORE formatted c18 1 18
+    STORE formatted 0 1 19
+
+    STORE length 19 8
+    FREE year
+    FREE days_left
+    FREE month
+END

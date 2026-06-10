@@ -1,0 +1,85 @@
+BEHAVIOR map-has
+
+DESCRIPTION
+  1 if key is present in an open-addressing hash map, else 0. Same FNV-1a hash
+  + linear probe as map-get, but reads no value. An empty slot ends the probe.
+
+CONTRACT
+  INPUT map bytes 262144
+  INPUT key bytes 65536
+  INPUT klen int 8
+  OUTPUT found int 8
+  GUARANTEES writes_output
+
+HASH 600f07de
+
+IMPLEMENTATION
+  cap = LOAD map 8 0
+  kl = LOAD klen 8
+  STORE found 0 8
+  h = -3750763034362895725
+  hi = 0
+  LABEL hloop
+    hd = IGE hi kl 8
+    BRANCH hd hfin hbody
+  LABEL hbody
+    b = LOAD key 1 hi
+    bu = AND b 255 8
+    h = XOR h bu 8
+    h = IMUL h 1099511628211 8
+    hi = IADD hi 1 8
+    JUMP hloop
+  LABEL hfin
+  hp = AND h 9223372036854775807 8
+  slot = IMOD hp cap 8
+  tries = 0
+  LABEL ploop
+    pdone = IGE tries cap 8
+    BRANCH pdone hend pbody
+  LABEL pbody
+    e = IMUL slot 337 8
+    soff = IADD e 8 8
+    used = LOAD map 1 soff
+    used = AND used 255 8
+    isempty = IEQ used 0 8
+    BRANCH isempty hend notemp
+  LABEL notemp
+    istomb = IEQ used 2 8
+    BRANCH istomb nextslot checkkey
+  LABEL checkkey
+    skoff = IADD soff 1 8
+    sklen = LOAD map 8 skoff
+    samelen = IEQ sklen kl 8
+    BRANCH samelen cmpkey nextslot
+  LABEL cmpkey
+    kbase = IADD soff 9 8
+    j = 0
+    match = 1
+    LABEL cloop
+      cd = IGE j kl 8
+      BRANCH cd cdone cbody
+    LABEL cbody
+      ka = LOAD key 1 j
+      ka = AND ka 255 8
+      kboff = IADD kbase j 8
+      kb = LOAD map 1 kboff
+      kb = AND kb 255 8
+      neq = INE ka kb 8
+      BRANCH neq setnomatch cnext
+    LABEL setnomatch
+      match = 0
+      JUMP cdone
+    LABEL cnext
+      j = IADD j 1 8
+      JUMP cloop
+    LABEL cdone
+    BRANCH match setfound nextslot
+  LABEL nextslot
+    slot = IADD slot 1 8
+    slot = IMOD slot cap 8
+    tries = IADD tries 1 8
+    JUMP ploop
+  LABEL setfound
+    STORE found 1 8
+  LABEL hend
+END

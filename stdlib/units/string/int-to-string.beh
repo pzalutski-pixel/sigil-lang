@@ -1,0 +1,118 @@
+BEHAVIOR int-to-string
+
+DESCRIPTION
+  Converts signed integer to decimal string representation.
+  Handles negative numbers with leading minus sign.
+  Output is null-terminated.
+
+CONTRACT
+  INPUT value int 8
+  OUTPUT str bytes 32
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 8dcdacc1
+
+IMPLEMENTATION
+  v_h = ALLOC 8 int
+  init_v = LOAD value 8
+  STORE v_h init_v 8
+
+  pos = ALLOC 8 int
+  STORE pos 0 8
+  is_neg = ALLOC 1 int
+  STORE is_neg 0 1
+  tmp = ALLOC 32 bytes
+  tmp_pos = ALLOC 8 int
+  STORE tmp_pos 0 8
+
+  # Check if negative
+  v = LOAD v_h 8
+  neg_check = ILT v 0 8
+  BRANCH neg_check handle_neg check_zero
+
+  LABEL handle_neg
+    STORE is_neg 1 1
+    v = LOAD v_h 8
+    neg_v = ISUB 0 v 8
+    STORE v_h neg_v 8
+    JUMP check_zero
+
+  LABEL check_zero
+    v = LOAD v_h 8
+    is_zero = IEQ v 0 8
+    BRANCH is_zero write_zero digit_loop
+
+  LABEL write_zero
+    STORE str 48 1 0
+    STORE str 0 1 1
+    STORE length 1 8
+    JUMP cleanup
+
+  LABEL digit_loop
+    v = LOAD v_h 8
+    is_done = IEQ v 0 8
+    BRANCH is_done reverse extract_digit
+
+  LABEL extract_digit
+    v = LOAD v_h 8
+    # digit = v % 10
+    ten = ALLOC 8 int
+    STORE ten 10 8
+    ten_val = LOAD ten 8
+    digit = IMOD v ten_val 8
+    # v = v / 10
+    new_v = IDIV v ten_val 8
+    FREE ten
+    STORE v_h new_v 8
+    # Store ASCII digit (48 + digit)
+    ascii = IADD digit 48 8
+    tp = LOAD tmp_pos 8
+    STORE tmp ascii 1 tp
+    new_tp = IADD tp 1 8
+    STORE tmp_pos new_tp 8
+    JUMP digit_loop
+
+  LABEL reverse
+    # If negative, write minus sign first
+    neg_flag = LOAD is_neg 1
+    BRANCH neg_flag write_minus start_reverse
+
+  LABEL write_minus
+    STORE str 45 1 0
+    STORE pos 1 8
+
+  LABEL start_reverse
+    # Copy digits in reverse order
+    tp = LOAD tmp_pos 8
+    dec_tp = ISUB tp 1 8
+    STORE tmp_pos dec_tp 8
+
+  LABEL reverse_loop
+    tp = LOAD tmp_pos 8
+    done_rev = ILT tp 0 8
+    BRANCH done_rev finish_str copy_digit
+
+  LABEL copy_digit
+    tp = LOAD tmp_pos 8
+    digit = LOAD tmp 1 tp
+    p = LOAD pos 8
+    STORE str digit 1 p
+    new_p = IADD p 1 8
+    STORE pos new_p 8
+    new_tp = ISUB tp 1 8
+    STORE tmp_pos new_tp 8
+    JUMP reverse_loop
+
+  LABEL finish_str
+    p = LOAD pos 8
+    STORE str 0 1 p
+    STORE length p 8
+
+  LABEL cleanup
+    FREE v_h
+    FREE pos
+    FREE is_neg
+    FREE tmp
+    FREE tmp_pos
+END

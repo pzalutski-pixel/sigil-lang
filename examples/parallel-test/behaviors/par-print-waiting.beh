@@ -1,0 +1,11 @@
+BEHAVIOR par-print-waiting
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "All spawned, waiting..."
+  CALL println msg
+END

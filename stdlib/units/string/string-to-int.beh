@@ -1,0 +1,88 @@
+BEHAVIOR string-to-int
+
+DESCRIPTION
+  Converts decimal string to signed integer.
+  Handles optional leading minus sign for negatives.
+  Stops at first non-digit character.
+  Returns 0 for empty or invalid input.
+
+CONTRACT
+  INPUT str bytes 32
+  OUTPUT value int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH aace7a3a
+
+IMPLEMENTATION
+  pos = ALLOC 8 int
+  STORE pos 0 8
+  result = ALLOC 8 int
+  STORE result 0 8
+  is_neg = ALLOC 1 int
+  STORE is_neg 0 1
+
+  # Check for minus sign
+  first = LOAD str 1 0
+  is_minus = IEQ first 45 1
+  BRANCH is_minus handle_minus check_digit
+
+  LABEL handle_minus
+    STORE is_neg 1 1
+    STORE pos 1 8
+
+  LABEL check_digit
+    p = LOAD pos 8
+    byte = LOAD str 1 p
+    # Check if null terminator
+    is_null = IEQ byte 0 1
+    BRANCH is_null finish check_valid
+
+  LABEL check_valid
+    # Check if digit (48-57)
+    ge_zero = IGE byte 48 1
+    le_nine = ILE byte 57 1
+    is_digit = AND ge_zero le_nine 1
+    BRANCH is_digit process_digit finish
+
+  LABEL process_digit
+    # result = result * 10 + (byte - 48)
+    r = LOAD result 8
+    r = IMUL r 10 8
+    digit = ISUB byte 48 8
+    r = IADD r digit 8
+    STORE result r 8
+    p = LOAD pos 8
+    new_p = IADD p 1 8
+    STORE pos new_p 8
+    JUMP check_digit
+
+  LABEL finish
+    r = LOAD result 8
+    neg_flag = LOAD is_neg 1
+    BRANCH neg_flag negate done
+
+  LABEL negate
+    r = ISUB 0 r 8
+
+  LABEL done
+    STORE value r 8
+    # Status: 0 = success, -1 = invalid
+    p = LOAD pos 8
+    neg_flag = LOAD is_neg 1
+    min_len = IADD neg_flag 1 8
+    valid = IGE p min_len 8
+    BRANCH valid set_ok set_err
+
+  LABEL set_ok
+    STORE status 0 8
+    JUMP cleanup
+
+  LABEL set_err
+    STORE status -1 8
+
+  LABEL cleanup
+    FREE pos
+    FREE result
+    FREE is_neg
+END

@@ -1,0 +1,24 @@
+BEHAVIOR read-file-all
+
+DESCRIPTION
+  Reads an entire file (up to 65536 bytes) into data, with its byte count.
+  Convenience wiring over open/read/close.
+
+CONTRACT
+  INPUT path string
+  OUTPUT data bytes 65536
+  OUTPUT length int 8
+  REQUIRES open@7d62cd96 read@82ce10f8 close@d4ba30e5 copy@05c62b49
+  GUARANTEES writes_output
+
+HASH bf59f1e1
+
+COMPOSITION
+  inf = CALL open path 0
+  rd = CALL read inf.fd 65536
+  cp = CALL copy rd.buffer 0 data 0 rd.bytes_read
+  DISCARD cp.bytes_copied
+  cl = CALL close inf.fd
+  DISCARD cl.status
+  SET length rd.bytes_read
+END

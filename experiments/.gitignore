@@ -1,0 +1,8 @@
+# Build artifacts and compiler cache — not source, not evidence.
+# (The agent transcripts in SESSION.md are the record; binaries/caches are noise.)
+.cache/
+build/
+*.o
+*.obj
+*.exe
+*.log

@@ -1,0 +1,98 @@
+# Sigil Standard Library — Catalog
+
+**Generated** from the built stdlib by `sigil-compiler --lib stdlib/units -o lib/release/sigil-stdlib.lib` (it writes `lib/release/.generated/catalog.md`); this is the committed, agent-facing copy — regenerate it after adding behaviors. Full contracts (sizes, hashes, guarantees) live in `lib/release/.generated/contracts.registry`. Authoring rules are in `docs/SIGIL-LANGUAGE-REFERENCE.md`.
+
+One line per behavior — name, (inputs → outputs), and purpose. Full contracts (sizes, hashes, guarantees) are in `contracts.registry`.
+
+- `abs` (value → result) — Absolute value of a signed 64-bit integer.
+- `accept` (fd → client_fd, client_addr, addr_len) — Server-side: waits for and accepts a client connection.
+- `arg-count` (() → count) — Number of command-line arguments (argc), including the program name at index 0.
+- `arg-get` (index → arg, length) — The command-line argument at index (0 = program name) as a null-terminated byte buffer, with its length.
+- `array-buf-size` (cap → size) — Bytes a caller must provide to back an int array of `cap` 8-byte elements: 16-byte header ([len:8][cap:8]) + cap*8 data.
+- `array-get` (arr, index → value) — Returns the element at index (0-based) of an int array.
+- `array-init` (arr, cap → ()) — Initializes an int dynamic array in caller-owned memory (per spec 3.3 the caller owns the buffer, this callee initializes it).
+- `array-len` (arr → length) — Returns the number of elements currently stored in an int array (its len field), as set by array-init (0) and array-push.
+- `array-push` (arr, value → status) — Appends value to the array if there is room (len < cap), incrementing len.
+- `array-set` (arr, index, value → ()) — Overwrites the element at index (0-based) of an int array with value.
+- `base64-decode` (data, len → result, length) — Decodes standard Base64 (RFC 4648) text (the first len bytes of data, len a multiple of 4) into raw bytes; writes the byte count to length.
+- `base64-encode` (data, len → result, length) — Standard Base64 (RFC 4648) of the first len bytes of data.
+- `bind` (fd, addr, addr_len → status) — Server-side: binds socket to local address and port.
+- `bytes-to-string` (src, len, buf → str) — Produces a `string` (length-prefixed, self-describing) from the first len bytes of src, using the caller-owned buffer buf as its backing store.
+- `ceil` (x → result) — Smallest integer >= x (mathematical ceiling), returned as an int.
+- `clamp` (x, lo, hi → result) — Clamp x into [lo, hi]: returns lo if x < lo, hi if x > hi, else x.
+- `close` (fd → status) — Closes a file descriptor.
+- `close-socket` (fd → status) — Closes a network socket.
+- `compare` (first, second → result) — Lexicographically compares two byte sequences.
+- `concat` (first, second → result) — Joins first + second into result.
+- `connect` (fd, addr, addr_len → status) — Client-side: establishes TCP connection to a server.
+- `contains` (haystack, needle → result) — 1 if the null-terminated needle occurs in the null-terminated haystack, else 0.
+- `copy` (src, src_offset, dst, dst_offset, count → bytes_copied) — Copies bytes from source to destination buffer.
+- `crc32` (data, len → crc) — CRC-32 (IEEE 802.3, polynomial 0xEDB88320) of the first len bytes of data, bit-by-bit (no table).
+- `duration` (start, end → diff) — Calculates difference between two timestamps in milliseconds.
+- `ends-with` (s, suffix → result) — 1 if the null-terminated string s ends with the null-terminated suffix, else 0.
+- `env-get` (name → value, found) — Value of the environment variable named by the null-terminated `name` buffer, as a null-terminated byte buffer, plus found=1/0.
+- `exists` (path → result) — Checks if a file exists at the given path.
+- `exit` (code → ()) — Terminates the process immediately with the given exit code.
+- `fill` (buffer, offset, value, count → bytes_written) — Fills count bytes of buffer, starting at offset, with a byte value.
+- `find` (haystack, needle → index) — Finds first occurrence of needle in haystack.
+- `find-byte` (buffer, value, len → index) — Index of the first occurrence of a byte value in the first len bytes of buffer, or -1 if absent (memchr semantics).
+- `float-to-string` (value → result, length) — Formats an f64 as decimal text with exactly 6 fractional digits, into result (null-terminated) with the char count in length.
+- `floor` (x → result) — Largest integer <= x (mathematical floor), returned as an int.
+- `fnv1a` (data, len → hash) — 64-bit FNV-1a hash of the first len bytes of data.
+- `format` (parsed → json, length) — Converts internal JSON representation back to JSON string.
+- `format-time` (timestamp → formatted, length) — Formats Unix timestamp as "YYYY-MM-DD HH:MM:SS" string.
+- `hex-decode` (s, len → result, length) — Decodes a hex string (first len chars; accepts 0-9 a-f A-F) into raw bytes.
+- `hex-encode` (data, len → result, length) — Lowercase hex encoding of the first len bytes of data (2 hex chars per byte).
+- `htonl` (value → result) — Converts 32-bit value from host to network byte order.
+- `htons` (value → result) — Converts 16-bit value from host to network byte order.
+- `int-to-string` (value → str, length) — Converts signed integer to decimal string representation.
+- `is-negative` (value → result) — Checks if an integer value is negative (less than 0).
+- `is-non-positive` (value → result) — Checks if an integer value is non-positive (less than or equal to 0).
+- `length` (data → len) — Returns the length of a byte sequence in bytes.
+- `listen` (fd, backlog → status) — Server-side: starts listening for client connections.
+- `make-sockaddr` (port, ip → addr, addr_len) — Builds a 16-byte IPv4 sockaddr_in for bind/connect, the boilerplate every socket program otherwise hand-rolls.
+- `map-buf-size` (cap → size) — Bytes a caller must provide to back a hash map of `cap` slots: an 8-byte header ([cap:8]) plus cap * 337-byte slots (slot = used:1 + key_len:8 + key:64 + val_len:8 + val:256).
+- `map-delete` (map, key, klen → found) — Removes key from an open-addressing hash map by marking its slot as a tombstone (used=2), so probe chains through it stay intact.
+- `map-get` (map, key, klen → val, vlen, found) — Looks up key in an open-addressing hash map.
+- `map-has` (map, key, klen → found) — 1 if key is present in an open-addressing hash map, else 0.
+- `map-init` (map, cap → ()) — Initializes an open-addressing (linear-probe) hash map in caller-owned memory: stores cap at offset 0 and clears every slot's used flag.
+- `map-put` (map, key, klen, val, vlen → status) — Inserts or overwrites key->val in an open-addressing hash map.
+- `max` (a, b → result) — Larger of two signed 64-bit integers.
+- `mem-compare` (a, b, len → result) — Lexicographic comparison of the first len bytes of a and b, as unsigned bytes (memcmp semantics, reduced to a sign): -1 if a < b, 1 if a > b, 0 if the regions are equal.
+- `min` (a, b → result) — Smaller of two signed 64-bit integers.
+- `now` (() → timestamp) — Returns current time as milliseconds since Unix epoch.
+- `ntohl` (value → result) — Converts 32-bit value from network to host byte order.
+- `ntohs` (value → result) — Converts 16-bit value from network to host byte order.
+- `open` (path, flags → fd) — Opens a file and returns a file descriptor.
+- `pad-right` (s, target, value → result, length) — Copies the null-terminated s into result, then appends the byte `value` until result is `target` bytes long (no-op if s is already >= target).
+- `parse` (json → parsed, status) — Parses JSON string into internal representation.
+- `parse-addr` (s → ip, ok) — Parses a null-terminated dotted-decimal IPv4 string ("a.b.c.d") into a packed int in network order (octet 0 in the low byte), suitable for make-sockaddr's ip input.
+- `pow` (base, exp → result) — Integer exponentiation: base raised to a non-negative exponent.
+- `print` (text → ()) — Writes a string to standard output (stdout).
+- `println` (text → ()) — Writes a string to standard output followed by newline.
+- `println-bytes` (data, length → ()) — Writes length raw bytes from a buffer to standard output, followed by newline.
+- `read` (fd, count → buffer, bytes_read) — Reads bytes from file descriptor into buffer.
+- `read-file-all` (path → data, length) — Reads an entire file (up to 65536 bytes) into data, with its byte count.
+- `read_line` (max_length → buffer, bytes_read) — Reads a line from standard input (stdin).
+- `receive` (fd, max_length → buffer, bytes_received) — Receives data from a connected socket.
+- `repeat` (s, n → result, length) — Concatenates the null-terminated string s n times into result (n <= 0 yields an empty string).
+- `replace` (src, src_len, old, old_len, new, new_len → result, length) — Replaces every non-overlapping occurrence of old (old_len bytes) in src (src_len bytes) with new (new_len bytes).
+- `round` (x → result) — x rounded to the nearest integer, half away from zero, returned as an int.
+- `send` (fd, data, length → bytes_sent) — Sends data on a connected socket.
+- `sha256` (data, len → digest) — SHA-256 (FIPS 180-4) of the first len bytes of data.
+- `sleep` (milliseconds → status) — Pauses execution for specified milliseconds.
+- `socket` (domain, sock_type → fd) — Creates a network socket.
+- `split` (data, delimiter → parts) — Splits a byte sequence by delimiter into array of sequences.
+- `sqrt` (x → result) — Square root of x (f64) via Newton's method: g <- (g + x/g)/2, 40 iterations from g=x, which converges to full f64 precision for the normal range.
+- `starts-with` (s, prefix → result) — 1 if the null-terminated string s begins with the null-terminated prefix, else 0.
+- `string-pack` (src, len, buf → ()) — Writes a length-prefixed string image ([len:8-byte LE][content]) of the first len bytes of src into the caller-owned buffer buf.
+- `string-to-bytes` (text → data, length) — Translates a self-describing string into a raw byte buffer plus an explicit length.
+- `string-to-float` (text, len → result) — Parses decimal text (the first len bytes) into an f64: optional leading '-', integer digits, optional '.', fractional digits.
+- `string-to-int` (str → value, status) — Converts decimal string to signed integer.
+- `substring` (data, offset, length → result, actual_length) — Extracts a portion of byte sequence by offset and length.
+- `to-lower` (src → dst, length) — Copies the null-terminated src into dst, converting ASCII A-Z to a-z.
+- `to-upper` (src → dst, length) — Copies the null-terminated src into dst, converting ASCII a-z to A-Z.
+- `trim` (data → trimmed) — Removes leading and trailing whitespace from byte sequence.
+- `write` (fd, data, length → bytes_written) — Writes bytes from buffer to file descriptor.
+- `write-file-all` (path, data, length → bytes_written) — Writes length bytes of data to path, creating/truncating it (flags 3 = write|create).
+- `zero` (buffer, offset, size → bytes_written) — Zeros a region of memory.

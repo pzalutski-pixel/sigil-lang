@@ -1,0 +1,12 @@
+BEHAVIOR arg-count
+
+DESCRIPTION
+  Number of command-line arguments (argc), including the program name at index 0.
+
+CONTRACT
+  OUTPUT count int 8
+  GUARANTEES writes_output
+
+HASH 60a8a633
+
+NATIVE

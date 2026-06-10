@@ -1,0 +1,39 @@
+PATTERN producer
+
+MEMORY
+  chan_handle bytes 8
+  counter int 8
+
+ON_CREATE
+  msg = "Producer: starting..."
+  CALL println msg
+
+  STORE counter 0 8
+
+  LABEL send_loop
+    current = LOAD counter 8
+    three = 3
+    done_check = IGE current three 8
+    BRANCH done_check send_done send_value
+
+  LABEL send_value
+    val = LOAD counter 8
+    ten = 10
+    send_val = IMUL val ten 8
+
+    chan_id = LOAD chan_handle 8
+    CHANNEL_SEND chan_id send_val
+
+    one = 1
+    next = IADD current one 8
+    STORE counter next 8
+    JUMP send_loop
+
+  LABEL send_done
+    msg2 = "Producer: done, closing channel"
+    CALL println msg2
+
+    chan_id2 = LOAD chan_handle 8
+    CHANNEL_CLOSE chan_id2
+
+END_PATTERN

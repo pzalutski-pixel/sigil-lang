@@ -1,0 +1,45 @@
+EXECUTABLE consumer
+DESCRIPTION
+  Listens on TCP port 9812, accepts one HTTP POST, extracts the body
+  (everything after CRLFCRLF), prepends a timestamp + "PROCESSED BY CONSUMER",
+  and writes the result to output.txt.
+
+ENTRY
+  sa = CALL make-sockaddr 9812
+  sock = CALL socket 2 1
+
+  bnd = CALL bind sock.fd sa.addr sa.addr_len
+  DISCARD bnd.status
+  lsn = CALL listen sock.fd 1
+  DISCARD lsn.status
+
+  acc = CALL accept sock.fd
+  DISCARD acc.client_addr
+  DISCARD acc.addr_len
+
+  rcv = CALL receive acc.client_fd 65536
+
+  nd = CALL string-to-bytes "\r\n\r\n"
+  DISCARD nd.length
+  fi = CALL find rcv.buffer nd.data
+  bodyoff = CALL iadd fi.index 4
+  bodylen = CALL isub rcv.bytes_received bodyoff.sum
+  sub = CALL substring rcv.buffer bodyoff.sum bodylen.diff
+
+  tm = CALL now
+  ft = CALL format-time tm.timestamp
+  DISCARD ft.length
+
+  out = CALL build-output ft.formatted sub.result sub.actual_length
+
+  ofd = CALL open "output.txt" 3
+  wr = CALL write ofd.fd out.result out.length
+  DISCARD wr.bytes_written
+  cl = CALL close ofd.fd
+  DISCARD cl.status
+
+  cc = CALL close-socket acc.client_fd
+  DISCARD cc.status
+  cs = CALL close-socket sock.fd
+  DISCARD cs.status
+END_EXECUTABLE

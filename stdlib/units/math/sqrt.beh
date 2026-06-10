@@ -1,0 +1,39 @@
+BEHAVIOR sqrt
+
+DESCRIPTION
+  Square root of x (f64) via Newton's method: g <- (g + x/g)/2, 40 iterations
+  from g=x, which converges to full f64 precision for the normal range.
+  Returns a float. x <= 0 returns 0.0. sqrt(2.0)=1.41421356..., sqrt(16.0)=4.0.
+
+CONTRACT
+  INPUT x float 8
+  OUTPUT result float 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 56b84359
+
+IMPLEMENTATION
+  xv = LOAD x 8
+  zero = ITOF 0 8 8
+  pos = FGT xv zero 8
+  BRANCH pos compute retzero
+  LABEL retzero
+    STORE result zero 8
+    JUMP sdone
+  LABEL compute
+    two = ITOF 2 8 8
+    g = FADD xv zero 8
+    i = 0
+    LABEL nl
+      d = IGE i 40 8
+      BRANCH d nle nlb
+    LABEL nlb
+      q = FDIV xv g 8
+      s = FADD g q 8
+      g = FDIV s two 8
+      i = IADD i 1 8
+      JUMP nl
+    LABEL nle
+    STORE result g 8
+  LABEL sdone
+END

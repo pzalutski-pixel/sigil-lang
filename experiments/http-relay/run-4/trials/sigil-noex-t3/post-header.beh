@@ -1,0 +1,72 @@
+BEHAVIOR post-header
+
+DESCRIPTION
+  Writes the fixed HTTP/1.1 POST request header into hdr at offsets 0..55:
+  POST / HTTP/1.1 CRLF Host: localhost CRLF Content-Length: 11 CRLF CRLF.
+  header_len is 56. The body (11 bytes) is appended after this header by the
+  caller.
+
+CONTRACT
+  OUTPUT hdr bytes 65536
+  GUARANTEES writes_output
+
+HASH cd8db959
+
+IMPLEMENTATION
+  STORE hdr 80 1 0       # P
+  STORE hdr 79 1 1       # O
+  STORE hdr 83 1 2       # S
+  STORE hdr 84 1 3       # T
+  STORE hdr 32 1 4       # space
+  STORE hdr 47 1 5       # /
+  STORE hdr 32 1 6       # space
+  STORE hdr 72 1 7       # H
+  STORE hdr 84 1 8       # T
+  STORE hdr 84 1 9       # T
+  STORE hdr 80 1 10      # P
+  STORE hdr 47 1 11      # /
+  STORE hdr 49 1 12      # 1
+  STORE hdr 46 1 13      # .
+  STORE hdr 49 1 14      # 1
+  STORE hdr 13 1 15      # CR
+  STORE hdr 10 1 16      # LF
+  STORE hdr 72 1 17      # H
+  STORE hdr 111 1 18     # o
+  STORE hdr 115 1 19     # s
+  STORE hdr 116 1 20     # t
+  STORE hdr 58 1 21      # :
+  STORE hdr 32 1 22      # space
+  STORE hdr 108 1 23     # l
+  STORE hdr 111 1 24     # o
+  STORE hdr 99 1 25      # c
+  STORE hdr 97 1 26      # a
+  STORE hdr 108 1 27     # l
+  STORE hdr 104 1 28     # h
+  STORE hdr 111 1 29     # o
+  STORE hdr 115 1 30     # s
+  STORE hdr 116 1 31     # t
+  STORE hdr 13 1 32      # CR
+  STORE hdr 10 1 33      # LF
+  STORE hdr 67 1 34      # C
+  STORE hdr 111 1 35     # o
+  STORE hdr 110 1 36     # n
+  STORE hdr 116 1 37     # t
+  STORE hdr 101 1 38     # e
+  STORE hdr 110 1 39     # n
+  STORE hdr 116 1 40     # t
+  STORE hdr 45 1 41      # -
+  STORE hdr 76 1 42      # L
+  STORE hdr 101 1 43     # e
+  STORE hdr 110 1 44     # n
+  STORE hdr 103 1 45     # g
+  STORE hdr 116 1 46     # t
+  STORE hdr 104 1 47     # h
+  STORE hdr 58 1 48      # :
+  STORE hdr 32 1 49      # space
+  STORE hdr 49 1 50      # 1
+  STORE hdr 49 1 51      # 1
+  STORE hdr 13 1 52      # CR
+  STORE hdr 10 1 53      # LF
+  STORE hdr 13 1 54      # CR
+  STORE hdr 10 1 55      # LF
+END

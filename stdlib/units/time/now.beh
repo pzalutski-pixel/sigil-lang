@@ -1,0 +1,13 @@
+BEHAVIOR now
+
+DESCRIPTION
+  Returns current time as milliseconds since Unix epoch.
+  January 1, 1970 00:00:00 UTC = 0.
+
+CONTRACT
+  OUTPUT timestamp int 8
+  GUARANTEES writes_output
+
+HASH cee78134
+
+NATIVE

@@ -1,0 +1,11 @@
+BEHAVIOR print-spawning
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Spawning producer..."
+  CALL println msg
+END

@@ -1,0 +1,125 @@
+BEHAVIOR base64-encode
+
+DESCRIPTION
+  Standard Base64 (RFC 4648) of the first len bytes of data. Alphabet
+  A-Z a-z 0-9 + /, '=' padding. result is null-terminated; length is the
+  char count (a multiple of 4, = 4*ceil(len/3)). Examples:
+  base64("Man")="TWFu", base64("Ma")="TWE=", base64("M")="TQ==",
+  base64("")="". The 64-char alphabet is built once in a scratch table.
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT len int 8
+  OUTPUT result bytes 131072
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 99597304
+
+IMPLEMENTATION
+  lenv = LOAD len 8
+  tbl = ALLOC 64 bytes
+  k = 0
+  LABEL fAZ
+    d1 = IGE k 26 8
+    BRANCH d1 fAZe fAZb
+  LABEL fAZb
+    ch = IADD k 65 8
+    STORE tbl ch 1 k
+    k = IADD k 1 8
+    JUMP fAZ
+  LABEL fAZe
+  k = 0
+  LABEL faz
+    d2 = IGE k 26 8
+    BRANCH d2 faze fazb
+  LABEL fazb
+    ch = IADD k 97 8
+    off = IADD k 26 8
+    STORE tbl ch 1 off
+    k = IADD k 1 8
+    JUMP faz
+  LABEL faze
+  k = 0
+  LABEL f09
+    d3 = IGE k 10 8
+    BRANCH d3 f09e f09b
+  LABEL f09b
+    ch = IADD k 48 8
+    off = IADD k 52 8
+    STORE tbl ch 1 off
+    k = IADD k 1 8
+    JUMP f09
+  LABEL f09e
+  STORE tbl 43 1 62
+  STORE tbl 47 1 63
+  i = 0
+  o = 0
+  LABEL loop
+    rem = ISUB lenv i 8
+    done = ILE rem 0 8
+    BRANCH done fin body
+  LABEL body
+    b0 = LOAD data 1 i
+    b0 = AND b0 255 8
+    has2 = IGE rem 2 8
+    BRANCH has2 ld1 nob1
+  LABEL ld1
+    i1 = IADD i 1 8
+    b1 = LOAD data 1 i1
+    b1 = AND b1 255 8
+    JUMP afterb1
+  LABEL nob1
+    b1 = 0
+  LABEL afterb1
+    has3 = IGE rem 3 8
+    BRANCH has3 ld2 nob2
+  LABEL ld2
+    i2 = IADD i 2 8
+    b2 = LOAD data 1 i2
+    b2 = AND b2 255 8
+    JUMP afterb2
+  LABEL nob2
+    b2 = 0
+  LABEL afterb2
+    c0 = SHR b0 2 8
+    t0a = AND b0 3 8
+    t0a = SHL t0a 4 8
+    t0b = SHR b1 4 8
+    c1 = OR t0a t0b 8
+    t1a = AND b1 15 8
+    t1a = SHL t1a 2 8
+    t1b = SHR b2 6 8
+    c2 = OR t1a t1b 8
+    c3 = AND b2 63 8
+    e0 = LOAD tbl 1 c0
+    STORE result e0 1 o
+    o1o = IADD o 1 8
+    e1 = LOAD tbl 1 c1
+    STORE result e1 1 o1o
+    o2o = IADD o 2 8
+    o3o = IADD o 3 8
+    BRANCH has2 c2real c2pad
+  LABEL c2real
+    e2 = LOAD tbl 1 c2
+    STORE result e2 1 o2o
+    JUMP afterc2
+  LABEL c2pad
+    STORE result 61 1 o2o
+  LABEL afterc2
+    BRANCH has3 c3real c3pad
+  LABEL c3real
+    e3 = LOAD tbl 1 c3
+    STORE result e3 1 o3o
+    JUMP afterc3
+  LABEL c3pad
+    STORE result 61 1 o3o
+  LABEL afterc3
+    o = IADD o 4 8
+    i = IADD i 3 8
+    JUMP loop
+  LABEL fin
+    STORE result 0 1 o
+    STORE length o 8
+    FREE tbl
+END

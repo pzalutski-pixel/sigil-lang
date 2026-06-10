@@ -1,0 +1,9 @@
+EXECUTABLE hello-world
+
+DESCRIPTION
+  Entry point for hello-world program.
+  Prints "Hello, World!" followed by newline to stdout.
+
+ENTRY
+  CALL direct
+END_EXECUTABLE

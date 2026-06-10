@@ -1,0 +1,18 @@
+BEHAVIOR main
+
+DESCRIPTION
+  Test linking against stdlib library.
+  Uses println from stdlib.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES println@a273ebb3
+  GUARANTEES writes_output
+
+HASH f9de110d
+
+COMPOSITION
+  msg = "Hi!"
+  CALL println msg
+  SET status 0
+END

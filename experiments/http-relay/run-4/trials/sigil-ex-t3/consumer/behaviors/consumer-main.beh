@@ -1,0 +1,57 @@
+BEHAVIOR consumer-main
+
+DESCRIPTION
+  HTTP file relay consumer. Listens on TCP port 9823 for one HTTP POST, extracts
+  the request body, prepends a "<timestamp> PROCESSED BY CONSUMER" line, and
+  writes the framed result to output.txt.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c make-sockaddr@a9866fc0 bind@697435f5 listen@95b7eb35 accept@e88849be receive@2ae7614b extract-body@741a45ad now@cee78134 format-time@83ebda2d frame-output@8f560f79 write-file-all@b17d9aa8 close-socket@d4ba30e5
+  GUARANTEES writes_output
+
+HASH 00b921fa
+
+COMPOSITION
+  # TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock = CALL socket 2 1
+
+  # Bind to port 9823, ip 0.0.0.0
+  addr = CALL make-sockaddr 9823 0
+  bind_r = CALL bind sock.fd addr.addr addr.addr_len
+  DISCARD bind_r
+
+  # Listen, backlog 10
+  listen_r = CALL listen sock.fd 10
+  DISCARD listen_r
+
+  # Accept one connection (peer address unused)
+  acc = CALL accept sock.fd
+  DISCARD acc.client_addr
+  DISCARD acc.addr_len
+
+  # Receive the HTTP request
+  rcv = CALL receive acc.client_fd 65536
+
+  # Extract the HTTP body
+  bdy = CALL extract-body rcv.buffer rcv.bytes_received
+
+  # Timestamp
+  t = CALL now
+  ft = CALL format-time t.timestamp
+
+  # Frame: "<timestamp> PROCESSED BY CONSUMER\n<body>"
+  framed = CALL frame-output ft.formatted ft.length bdy.body bdy.body_len
+
+  # Write to output.txt
+  wr = CALL write-file-all "output.txt" framed.result framed.length
+  DISCARD wr
+
+  # Close sockets
+  cc = CALL close-socket acc.client_fd
+  DISCARD cc
+  cs = CALL close-socket sock.fd
+  DISCARD cs
+
+  SET status 0
+END

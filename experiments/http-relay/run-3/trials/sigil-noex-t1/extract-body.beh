@@ -1,0 +1,74 @@
+BEHAVIOR extract-body
+
+DESCRIPTION
+  Finds the HTTP header/body separator (CRLF CRLF) in data and copies the
+  bytes after it into body, reporting the body length.
+  If no separator is found, copies the whole input as the body.
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT dlen int 8
+  OUTPUT body bytes 65536
+  OUTPUT blen int 8
+  GUARANTEES writes_output
+
+HASH 345875d5
+
+IMPLEMENTATION
+  n = LOAD dlen 8
+  start = ALLOC 8 int
+  STORE start 0 8
+  i = ALLOC 8 int
+  STORE i 0 8
+  limit = ISUB n 3 8
+  LABEL scan_start
+  iv = LOAD i 8
+  atend = IGE iv limit 8
+  BRANCH atend scan_end scan_body
+  LABEL scan_body
+  o1 = IADD iv 1 8
+  o2 = IADD iv 2 8
+  o3 = IADD iv 3 8
+  c0 = LOAD data 1 iv
+  c1 = LOAD data 1 o1
+  c2 = LOAD data 1 o2
+  c3 = LOAD data 1 o3
+  m0 = IEQ c0 13 8
+  m1 = IEQ c1 10 8
+  m2 = IEQ c2 13 8
+  m3 = IEQ c3 10 8
+  p01 = AND m0 m1 8
+  p23 = AND m2 m3 8
+  match = AND p01 p23 8
+  BRANCH match found next_iter
+  LABEL next_iter
+  nv = IADD iv 1 8
+  STORE i nv 8
+  JUMP scan_start
+  LABEL found
+  bs = IADD iv 4 8
+  STORE start bs 8
+  JUMP scan_end
+  LABEL scan_end
+  sv = LOAD start 8
+  blenv = ISUB n sv 8
+  STORE body 0 1 0
+  j = ALLOC 8 int
+  STORE j 0 8
+  LABEL copy_start
+  jv = LOAD j 8
+  cdone = IGE jv blenv 8
+  BRANCH cdone copy_end copy_body
+  LABEL copy_body
+  rd_off = IADD sv jv 8
+  ch = LOAD data 1 rd_off
+  STORE body ch 1 jv
+  njv = IADD jv 1 8
+  STORE j njv 8
+  JUMP copy_start
+  LABEL copy_end
+  STORE blen blenv 8
+  FREE start
+  FREE i
+  FREE j
+END

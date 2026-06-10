@@ -1,0 +1,59 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  HTTP server that listens on port 9753.
+  When a POST request is received, prepends timestamp and
+  PROCESSED BY CONSUMER to the body and writes to output.txt.
+
+ENTRY
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock = CALL socket 2 1
+
+  # Create server address for port 9753
+  addr = CALL make-server-addr
+
+  # Bind socket to address
+  bind_status = CALL bind sock.fd addr.addr addr.addr_len
+
+  # Listen for connections (backlog=1)
+  listen_status = CALL listen sock.fd 1
+
+  # Accept incoming connection
+  conn = CALL accept sock.fd
+
+  # Receive HTTP request (max 65536 bytes)
+  req = CALL receive conn.client_fd 65536
+
+  # Extract body from HTTP request
+  body = CALL extract-http-body req.buffer req.bytes_received
+
+  # Get current timestamp
+  ts = CALL now
+
+  # Format timestamp as string
+  time_str = CALL format-time ts.timestamp
+
+  # Build prefix: "YYYY-MM-DD HH:MM:SS PROCESSED BY CONSUMER\n"
+  # The marker is produced as null-terminated bytes by a leaf; a string literal
+  # can't be passed to concat anymore (literals are length-prefixed, ref 2.5).
+  marker = CALL processed-marker
+  prefix1 = CALL concat time_str.formatted marker.marker
+
+  # Build final output: prefix + body
+  output = CALL concat prefix1.result body.body
+
+  # Get length of output
+  out_len = CALL length output.result
+
+  # Open output.txt for writing (flags: write=1 + create=2 = 3)
+  file = CALL open "output.txt" 3
+
+  # Write output to file
+  written = CALL write file.fd output.result out_len.len
+
+  # Close file and sockets
+  close_file = CALL close file.fd
+  close_conn = CALL close-socket conn.client_fd
+  close_sock = CALL close-socket sock.fd
+
+END_EXECUTABLE

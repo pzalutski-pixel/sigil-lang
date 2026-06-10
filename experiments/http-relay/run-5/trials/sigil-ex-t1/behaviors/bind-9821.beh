@@ -1,0 +1,18 @@
+BEHAVIOR bind-9821
+
+DESCRIPTION
+  Binds a socket to port 9821 on all interfaces (0.0.0.0).
+
+CONTRACT
+  INPUT sock_fd int 8
+  OUTPUT status int 8
+  REQUIRES bind@697435f5 make-sockaddr@a9866fc0
+  GUARANTEES writes_output
+
+HASH aeecef12
+
+COMPOSITION
+  addr_result = CALL make-sockaddr 9821 0
+  bind_result = CALL bind sock_fd addr_result.addr addr_result.addr_len
+  SET status bind_result.status
+END

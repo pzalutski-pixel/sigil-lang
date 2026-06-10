@@ -1,0 +1,136 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Assembles the consumer's output buffer from a received HTTP request.
+  Scans the request bytes for the CRLFCRLF (0x0D0A0D0A) header/body separator;
+  everything after it is the body. Writes:
+    [timestamp 19 bytes][" PROCESSED BY CONSUMER"][0x0A][body]
+  into out, and sets out_len to the total byte count. ts holds the 19-byte
+  "YYYY-MM-DD HH:MM:SS" timestamp.
+
+CONTRACT
+  INPUT request bytes 65536
+  INPUT req_len int 8
+  INPUT ts bytes 32
+  OUTPUT out bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH d350f6fb
+
+IMPLEMENTATION
+  rlen = LOAD req_len 8
+  # --- find CRLFCRLF in request, body starts just after ---
+  i = ALLOC 8 int
+  STORE i 0 8
+  body_start = ALLOC 8 int
+  STORE body_start rlen 8        # default: no separator found -> empty body
+
+  LABEL scan
+    iv = LOAD i 8
+    # need 4 bytes available: iv + 4 <= req_len
+    ip4 = IADD iv 4 8
+    fits = ILE ip4 rlen 8
+    BRANCH fits scan_check scan_done
+
+  LABEL scan_check
+    iv2 = LOAD i 8
+    b0 = LOAD request 1 iv2
+    o1 = IADD iv2 1 8
+    b1 = LOAD request 1 o1
+    o2 = IADD iv2 2 8
+    b2 = LOAD request 1 o2
+    o3 = IADD iv2 3 8
+    b3 = LOAD request 1 o3
+    is_cr0 = IEQ b0 13 1
+    is_lf1 = IEQ b1 10 1
+    is_cr2 = IEQ b2 13 1
+    is_lf2 = IEQ b3 10 1
+    m01 = AND is_cr0 is_lf1 1
+    m23 = AND is_cr2 is_lf2 1
+    match = AND m01 m23 1
+    BRANCH match scan_found scan_next
+
+  LABEL scan_next
+    iv3 = LOAD i 8
+    iv3n = IADD iv3 1 8
+    STORE i iv3n 8
+    JUMP scan
+
+  LABEL scan_found
+    ivf = LOAD i 8
+    bs = IADD ivf 4 8
+    STORE body_start bs 8
+    JUMP scan_done
+
+  LABEL scan_done
+    # --- write timestamp (19 bytes) at out offset 0 ---
+    t0 = LOAD ts 8 0
+    STORE out t0 8 0
+    t1 = LOAD ts 8 8
+    STORE out t1 8 8
+    t2 = LOAD ts 2 16
+    STORE out t2 2 16
+    t3 = LOAD ts 1 18
+    STORE out t3 1 18
+
+    # --- write " PROCESSED BY CONSUMER" + 0x0A starting at offset 19 ---
+    # 22 chars: space P R O C E S S E D space B Y space C O N S U M E R, then \n
+    STORE out 32 1 19    # ' '
+    STORE out 80 1 20    # 'P'
+    STORE out 82 1 21    # 'R'
+    STORE out 79 1 22    # 'O'
+    STORE out 67 1 23    # 'C'
+    STORE out 69 1 24    # 'E'
+    STORE out 83 1 25    # 'S'
+    STORE out 83 1 26    # 'S'
+    STORE out 69 1 27    # 'E'
+    STORE out 68 1 28    # 'D'
+    STORE out 32 1 29    # ' '
+    STORE out 66 1 30    # 'B'
+    STORE out 89 1 31    # 'Y'
+    STORE out 32 1 32    # ' '
+    STORE out 67 1 33    # 'C'
+    STORE out 79 1 34    # 'O'
+    STORE out 78 1 35    # 'N'
+    STORE out 83 1 36    # 'S'
+    STORE out 85 1 37    # 'U'
+    STORE out 77 1 38    # 'M'
+    STORE out 69 1 39    # 'E'
+    STORE out 82 1 40    # 'R'
+    STORE out 10 1 41    # '\n'
+
+    # output write cursor now at 42
+    w = ALLOC 8 int
+    STORE w 42 8
+
+    # --- append body: from request[body_start..req_len] ---
+    j = ALLOC 8 int
+    bstart = LOAD body_start 8
+    STORE j bstart 8
+
+  LABEL copy
+    jv = LOAD j 8
+    more = ILT jv rlen 8
+    BRANCH more copy_byte copy_done
+
+  LABEL copy_byte
+    jv2 = LOAD j 8
+    bb = LOAD request 1 jv2
+    wv = LOAD w 8
+    STORE out bb 1 wv
+    wv2 = IADD wv 1 8
+    STORE w wv2 8
+    jv3 = IADD jv2 1 8
+    STORE j jv3 8
+    JUMP copy
+
+  LABEL copy_done
+    total = LOAD w 8
+    STORE out_len total 8
+
+    FREE i
+    FREE body_start
+    FREE w
+    FREE j
+END

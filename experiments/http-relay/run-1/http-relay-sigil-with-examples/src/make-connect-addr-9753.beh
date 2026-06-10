@@ -1,0 +1,50 @@
+BEHAVIOR make-connect-addr-9753
+
+DESCRIPTION
+  Creates sockaddr_in structure for connecting to localhost:9753.
+  Sets IP to 127.0.0.1 (loopback) for client connection.
+
+CONTRACT
+  OUTPUT addr bytes 128
+  GUARANTEES writes_output
+
+HASH 00f67ec4
+
+IMPLEMENTATION
+  # Zero the entire output buffer first (128 bytes in chunks)
+  zero = 0
+  STORE addr zero 8 0
+  STORE addr zero 8 8
+  STORE addr zero 8 16
+  STORE addr zero 8 24
+  STORE addr zero 8 32
+  STORE addr zero 8 40
+  STORE addr zero 8 48
+  STORE addr zero 8 56
+  STORE addr zero 8 64
+  STORE addr zero 8 72
+  STORE addr zero 8 80
+  STORE addr zero 8 88
+  STORE addr zero 8 96
+  STORE addr zero 8 104
+  STORE addr zero 8 112
+  STORE addr zero 8 120
+
+  # sin_family = AF_INET (2) - bytes 0-1
+  family = 2
+  STORE addr family 2 0
+
+  # sin_port = htons(9753) = 0x2619 network byte order
+  # byte 2 = 0x26 (38), byte 3 = 0x19 (25)
+  port_hi = 38
+  port_lo = 25
+  STORE addr port_hi 1 2
+  STORE addr port_lo 1 3
+
+  # sin_addr = 127.0.0.1 = 0x7F000001 in network byte order
+  # bytes 4-7: 127, 0, 0, 1
+  STORE addr 127 1 4
+  STORE addr 0 1 5
+  STORE addr 0 1 6
+  STORE addr 1 1 7
+END

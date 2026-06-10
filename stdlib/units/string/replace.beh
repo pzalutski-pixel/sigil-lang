@@ -1,0 +1,88 @@
+BEHAVIOR replace
+
+DESCRIPTION
+  Replaces every non-overlapping occurrence of old (old_len bytes) in src
+  (src_len bytes) with new (new_len bytes). Writes the rewritten bytes to
+  result (null-terminated) and the byte count to length. An empty old (old_len
+  0) matches nothing (src is copied verbatim). Examples:
+  replace("hello world hello","hello","hi")="hi world hi";
+  replace("aaa","a","bb")="bbbbbb"; no match copies src unchanged.
+
+CONTRACT
+  INPUT src bytes 65536
+  INPUT src_len int 8
+  INPUT old bytes 65536
+  INPUT old_len int 8
+  INPUT new bytes 65536
+  INPUT new_len int 8
+  OUTPUT result bytes 131072
+  OUTPUT length int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 0299d194
+
+IMPLEMENTATION
+  slen = LOAD src_len 8
+  olen = LOAD old_len 8
+  nlen = LOAD new_len 8
+  i = 0
+  o = 0
+  LABEL loop
+    iend = IGE i slen 8
+    BRANCH iend fin body
+  LABEL body
+    oz = ILE olen 0 8
+    BRANCH oz copyone trymatch
+  LABEL trymatch
+    iplus = IADD i olen 8
+    fits = IGT iplus slen 8
+    BRANCH fits copyone domatch
+  LABEL domatch
+    j = 0
+    matched = 1
+    LABEL mloop
+      mdone = IGE j olen 8
+      BRANCH mdone mfin mbody
+    LABEL mbody
+      sij = IADD i j 8
+      sc = LOAD src 1 sij
+      sc = AND sc 255 8
+      oc = LOAD old 1 j
+      oc = AND oc 255 8
+      neq = INE sc oc 8
+      BRANCH neq setno mnext
+    LABEL setno
+      matched = 0
+      JUMP mfin
+    LABEL mnext
+      j = IADD j 1 8
+      JUMP mloop
+    LABEL mfin
+    BRANCH matched doreplace copyone
+  LABEL doreplace
+    n = 0
+    LABEL nloop
+      ndone = IGE n nlen 8
+      BRANCH ndone nfin nbody
+    LABEL nbody
+      nc = LOAD new 1 n
+      nc = AND nc 255 8
+      oo = IADD o n 8
+      STORE result nc 1 oo
+      n = IADD n 1 8
+      JUMP nloop
+    LABEL nfin
+    o = IADD o nlen 8
+    i = IADD i olen 8
+    JUMP loop
+  LABEL copyone
+    sc1 = LOAD src 1 i
+    sc1 = AND sc1 255 8
+    STORE result sc1 1 o
+    o = IADD o 1 8
+    i = IADD i 1 8
+    JUMP loop
+  LABEL fin
+    STORE result 0 1 o
+    STORE length o 8
+END

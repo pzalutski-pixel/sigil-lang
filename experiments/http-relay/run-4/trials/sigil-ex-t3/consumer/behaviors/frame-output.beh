@@ -1,0 +1,120 @@
+BEHAVIOR frame-output
+
+DESCRIPTION
+  Builds the framed consumer output: the first tlen bytes of ts (the
+  "YYYY-MM-DD HH:MM:SS" timestamp), then the literal " PROCESSED BY CONSUMER"
+  (leading space, 22 bytes), then a newline (0x0A), then the first blen bytes of
+  body. result holds the assembled bytes and length is the total byte count
+  (tlen + 23 + blen).
+
+CONTRACT
+  INPUT ts bytes 32
+  INPUT tlen int 8
+  INPUT body bytes 65536
+  INPUT blen int 8
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 8f560f79
+
+IMPLEMENTATION
+  # pos tracks the write cursor into result
+  pos = ALLOC 8 int
+  STORE pos 0 8
+
+  tl = LOAD tlen 8
+  bl = LOAD blen 8
+
+  # 1) copy timestamp: result[0..tlen) = ts[0..tlen)
+  i = ALLOC 8 int
+  STORE i 0 8
+  LABEL ts_start
+    iv = LOAD i 8
+    more = ILT iv tl 8
+    BRANCH more ts_body marker
+  LABEL ts_body
+    tv = LOAD ts 1 iv
+    p = LOAD pos 8
+    STORE result tv 1 p
+    pn = IADD p 1 8
+    STORE pos pn 8
+    in = IADD iv 1 8
+    STORE i in 8
+    JUMP ts_start
+
+  # 2) write the literal " PROCESSED BY CONSUMER\n" (23 bytes)
+  LABEL marker
+    p0 = LOAD pos 8
+    STORE result 32 1 p0
+    p1 = IADD p0 1 8
+    STORE result 80 1 p1
+    p2 = IADD p0 2 8
+    STORE result 82 1 p2
+    p3 = IADD p0 3 8
+    STORE result 79 1 p3
+    p4 = IADD p0 4 8
+    STORE result 67 1 p4
+    p5 = IADD p0 5 8
+    STORE result 69 1 p5
+    p6 = IADD p0 6 8
+    STORE result 83 1 p6
+    p7 = IADD p0 7 8
+    STORE result 83 1 p7
+    p8 = IADD p0 8 8
+    STORE result 69 1 p8
+    p9 = IADD p0 9 8
+    STORE result 68 1 p9
+    p10 = IADD p0 10 8
+    STORE result 32 1 p10
+    p11 = IADD p0 11 8
+    STORE result 66 1 p11
+    p12 = IADD p0 12 8
+    STORE result 89 1 p12
+    p13 = IADD p0 13 8
+    STORE result 32 1 p13
+    p14 = IADD p0 14 8
+    STORE result 67 1 p14
+    p15 = IADD p0 15 8
+    STORE result 79 1 p15
+    p16 = IADD p0 16 8
+    STORE result 78 1 p16
+    p17 = IADD p0 17 8
+    STORE result 83 1 p17
+    p18 = IADD p0 18 8
+    STORE result 85 1 p18
+    p19 = IADD p0 19 8
+    STORE result 77 1 p19
+    p20 = IADD p0 20 8
+    STORE result 69 1 p20
+    p21 = IADD p0 21 8
+    STORE result 82 1 p21
+    p22 = IADD p0 22 8
+    STORE result 10 1 p22
+    pafter = IADD p0 23 8
+    STORE pos pafter 8
+
+  # 3) copy body: result[pos..] = body[0..blen)
+  j = ALLOC 8 int
+  STORE j 0 8
+  LABEL body_start
+    jv = LOAD j 8
+    bmore = ILT jv bl 8
+    BRANCH bmore body_body finish
+  LABEL body_body
+    bv = LOAD body 1 jv
+    bp = LOAD pos 8
+    STORE result bv 1 bp
+    bpn = IADD bp 1 8
+    STORE pos bpn 8
+    jn = IADD jv 1 8
+    STORE j jn 8
+    JUMP body_start
+
+  LABEL finish
+    total = LOAD pos 8
+    STORE length total 8
+    FREE pos
+    FREE i
+    FREE j
+END

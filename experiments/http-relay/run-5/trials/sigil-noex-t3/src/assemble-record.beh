@@ -1,0 +1,101 @@
+BEHAVIOR assemble-record
+
+DESCRIPTION
+  Assembles the consumer output record from a timestamp and a body.
+  Writes ts (first ts_len bytes), then the literal " PROCESSED BY CONSUMER\n"
+  (space, the 21-byte phrase, a 0x0A newline), then the first body_len bytes
+  of body, into record. rec_len is the total byte count.
+
+CONTRACT
+  INPUT ts bytes 32
+  INPUT ts_len int 8
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT record bytes 65536
+  OUTPUT rec_len int 8
+  GUARANTEES writes_output
+
+HASH ae9f2922
+
+IMPLEMENTATION
+  # dst write cursor
+  d = LOAD ts_len 8
+
+  # copy timestamp: src index i from 0..ts_len, dst index 0..ts_len
+  i = LOAD ts_len 8
+  i = ISUB i i 8
+  LABEL ts_loop
+    done = IGE i d 8
+    BRANCH done ts_done ts_body
+  LABEL ts_body
+    b = LOAD ts 1 i
+    STORE record b 1 i
+    i = IADD i 1 8
+    JUMP ts_loop
+  LABEL ts_done
+
+  # write literal " PROCESSED BY CONSUMER\n" starting at offset d
+  pos = LOAD ts_len 8
+  STORE record 32 1 pos
+  pos = IADD pos 1 8
+  STORE record 80 1 pos
+  pos = IADD pos 1 8
+  STORE record 82 1 pos
+  pos = IADD pos 1 8
+  STORE record 79 1 pos
+  pos = IADD pos 1 8
+  STORE record 67 1 pos
+  pos = IADD pos 1 8
+  STORE record 69 1 pos
+  pos = IADD pos 1 8
+  STORE record 83 1 pos
+  pos = IADD pos 1 8
+  STORE record 83 1 pos
+  pos = IADD pos 1 8
+  STORE record 69 1 pos
+  pos = IADD pos 1 8
+  STORE record 68 1 pos
+  pos = IADD pos 1 8
+  STORE record 32 1 pos
+  pos = IADD pos 1 8
+  STORE record 66 1 pos
+  pos = IADD pos 1 8
+  STORE record 89 1 pos
+  pos = IADD pos 1 8
+  STORE record 32 1 pos
+  pos = IADD pos 1 8
+  STORE record 67 1 pos
+  pos = IADD pos 1 8
+  STORE record 79 1 pos
+  pos = IADD pos 1 8
+  STORE record 78 1 pos
+  pos = IADD pos 1 8
+  STORE record 83 1 pos
+  pos = IADD pos 1 8
+  STORE record 85 1 pos
+  pos = IADD pos 1 8
+  STORE record 77 1 pos
+  pos = IADD pos 1 8
+  STORE record 69 1 pos
+  pos = IADD pos 1 8
+  STORE record 82 1 pos
+  pos = IADD pos 1 8
+  STORE record 10 1 pos
+  pos = IADD pos 1 8
+
+  # copy body starting at offset pos
+  blen = LOAD body_len 8
+  j = ISUB blen blen 8
+  LABEL body_loop
+    bdone = IGE j blen 8
+    BRANCH bdone body_done body_copy
+  LABEL body_copy
+    bb = LOAD body 1 j
+    STORE record bb 1 pos
+    pos = IADD pos 1 8
+    j = IADD j 1 8
+    JUMP body_loop
+  LABEL body_done
+
+  STORE rec_len pos 8
+END

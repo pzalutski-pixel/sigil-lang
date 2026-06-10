@@ -1,0 +1,53 @@
+BEHAVIOR length
+
+DESCRIPTION
+  Returns the length of a byte sequence in bytes.
+  Does not interpret encoding - raw byte count only.
+
+CONTRACT
+  INPUT data bytes 65536
+  OUTPUT len int 8
+  GUARANTEES writes_output
+
+HASH 458eeb66
+
+IMPLEMENTATION
+  # Scan bytes until null terminator (0x00) or max size
+  count = ALLOC 8 int
+  STORE count 0 8
+
+  max = ALLOC 8 int
+  STORE max 65536 8
+
+  LABEL scan_loop
+    # Check if we've reached max
+    count_val = LOAD count 8
+    max_val = LOAD max 8
+    at_max = IGE count_val max_val 8
+    BRANCH at_max done scan_continue
+
+  LABEL scan_continue
+    # Load byte at current position (with offset)
+    count_val = LOAD count 8
+    byte = LOAD data 1 count_val
+
+    # Check if null terminator
+    zero = ALLOC 1 int
+    STORE zero 0 1
+    zero_val = LOAD zero 1
+    FREE zero
+    is_null = IEQ byte zero_val 1
+    BRANCH is_null done increment
+
+  LABEL increment
+    count_val = LOAD count 8
+    new_count = IADD count_val 1 8
+    STORE count new_count 8
+    JUMP scan_loop
+
+  LABEL done
+    final_count = LOAD count 8
+    STORE len final_count 8
+    FREE count
+    FREE max
+END

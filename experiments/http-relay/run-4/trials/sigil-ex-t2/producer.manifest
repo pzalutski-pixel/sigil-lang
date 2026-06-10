@@ -1,0 +1,9 @@
+PROJECT producer
+VERSION 1.0.0
+
+DESCRIPTION
+  Reads input.txt and POSTs its contents to localhost:9822.
+
+ENTRY producer-main producer-main.beh
+
+END

@@ -1,0 +1,76 @@
+BEHAVIOR t2-acc-finish
+
+DESCRIPTION
+  Extracts the request body from a complete accumulator (see t2-acc-init):
+  reads the running length, finds the CRLFCRLF separator in the data region
+  acc[8 .. 8+len), and copies the bytes after it (the body) into body, with the
+  byte count in body_len. If no separator is found, body_len is 0.
+
+CONTRACT
+  INPUT acc bytes 65536
+  OUTPUT body bytes 65536
+  OUTPUT body_len int 8
+  GUARANTEES writes_output
+
+HASH 5f7a8be8
+
+IMPLEMENTATION
+  len = LOAD acc 8 0
+  i = ALLOC 8 int
+  STORE i 0 8
+  bs = ALLOC 8 int
+  STORE bs len 8
+  LABEL scan
+    iv = LOAD i 8
+    lim = ISUB len 3 8
+    cont = ILT iv lim 8
+    BRANCH cont check sdone
+  LABEL check
+    a0 = IADD iv 8 8
+    b0 = LOAD acc 1 a0
+    a1 = IADD iv 9 8
+    b1 = LOAD acc 1 a1
+    a2 = IADD iv 10 8
+    b2 = LOAD acc 1 a2
+    a3 = IADD iv 11 8
+    b3 = LOAD acc 1 a3
+    e0 = IEQ b0 13 1
+    e1 = IEQ b1 10 1
+    e2 = IEQ b2 13 1
+    e3 = IEQ b3 10 1
+    s01 = AND e0 e1 8
+    s23 = AND e2 e3 8
+    allm = AND s01 s23 8
+    BRANCH allm hit advance
+  LABEL hit
+    bstart = IADD iv 4 8
+    STORE bs bstart 8
+    JUMP sdone
+  LABEL advance
+    next = IADD iv 1 8
+    STORE i next 8
+    JUMP scan
+  LABEL sdone
+    FREE i
+    bsv = LOAD bs 8
+    FREE bs
+    blen = ISUB len bsv 8
+    STORE body 0 1 0
+    k = ALLOC 8 int
+    STORE k 0 8
+  LABEL cp
+    kv = LOAD k 8
+    cc = ILT kv blen 8
+    BRANCH cc cpbody cpdone
+  LABEL cpbody
+    srcbase = IADD bsv kv 8
+    src = IADD srcbase 8 8
+    bb = LOAD acc 1 src
+    STORE body bb 1 kv
+    kn = IADD kv 1 8
+    STORE k kn 8
+    JUMP cp
+  LABEL cpdone
+    FREE k
+    STORE body_len blen 8
+END

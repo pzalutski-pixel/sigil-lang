@@ -1,0 +1,29 @@
+BEHAVIOR make-addr
+DESCRIPTION
+  Builds a sockaddr_in for 127.0.0.1:9815.
+  family AF_INET=2 (bytes 0-1), port 9815 big-endian (bytes 2-3),
+  IP 127.0.0.1 (bytes 4-7). addr_len = 16.
+CONTRACT
+  OUTPUT addr bytes 128
+  OUTPUT addr_len int 8
+  GUARANTEES writes_output
+HASH 25b33dd7
+IMPLEMENTATION
+  STORE addr 2 1 0
+  STORE addr 0 1 1
+  STORE addr 38 1 2
+  STORE addr 87 1 3
+  STORE addr 127 1 4
+  STORE addr 0 1 5
+  STORE addr 0 1 6
+  STORE addr 1 1 7
+  STORE addr 0 1 8
+  STORE addr 0 1 9
+  STORE addr 0 1 10
+  STORE addr 0 1 11
+  STORE addr 0 1 12
+  STORE addr 0 1 13
+  STORE addr 0 1 14
+  STORE addr 0 1 15
+  STORE addr_len 16 8
+END

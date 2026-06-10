@@ -1,0 +1,59 @@
+BEHAVIOR contains
+
+DESCRIPTION
+  1 if the null-terminated needle occurs in the null-terminated haystack, else 0.
+  Empty needle is always contained. Byte-by-byte (not unicode-aware).
+
+CONTRACT
+  INPUT haystack bytes 65536
+  INPUT needle bytes 256
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 44fbf13b
+
+IMPLEMENTATION
+  nlen = 0
+  LABEL nl
+    nc = LOAD needle 1 nlen
+    nz = IEQ nc 0 1
+    BRANCH nz nld nli
+  LABEL nli
+    nlen = IADD nlen 1 8
+    JUMP nl
+
+  LABEL nld
+    nempty = IEQ nlen 0 8
+    BRANCH nempty yes searchstart
+
+  LABEL searchstart
+    pos = 0
+  LABEL sloop
+    hc = LOAD haystack 1 pos
+    hz = IEQ hc 0 1
+    BRANCH hz no trymatch
+  LABEL trymatch
+    m = 0
+  LABEL mloop
+    mdone = IGE m nlen 8
+    BRANCH mdone yes mcheck
+  LABEL mcheck
+    hi2 = IADD pos m 8
+    hch = LOAD haystack 1 hi2
+    nch = LOAD needle 1 m
+    eq = IEQ hch nch 1
+    BRANCH eq mnext nomatch
+  LABEL mnext
+    m = IADD m 1 8
+    JUMP mloop
+  LABEL nomatch
+    pos = IADD pos 1 8
+    JUMP sloop
+
+  LABEL yes
+    STORE result 1 8
+    JUMP done
+  LABEL no
+    STORE result 0 8
+  LABEL done
+END

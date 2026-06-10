@@ -1,0 +1,163 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Builds the processed output from a received HTTP POST.
+  Finds the HTTP body (after CRLF CRLF) and prepends
+  "<timestamp> PROCESSED BY CONSUMER\n" to it.
+
+CONTRACT
+  INPUT raw bytes 65536
+  INPUT raw_len int 8
+  INPUT ts bytes 32
+  OUTPUT result bytes 65536
+  OUTPUT result_len int 8
+  GUARANTEES writes_output
+
+HASH b9bc1e88
+
+IMPLEMENTATION
+  out_pos = ALLOC 8 int
+  STORE out_pos 0 8
+  i = ALLOC 8 int
+  STORE i 0 8
+  body_start = ALLOC 8 int
+  STORE body_start 0 8
+  scan = ALLOC 8 int
+  STORE scan 0 8
+
+  rlen = LOAD raw_len 8
+
+  # Copy 19-byte timestamp from ts into result at offset 0
+  STORE i 0 8
+  LABEL copy_ts
+    idx = LOAD i 8
+    done_ts = IGE idx 19 8
+    BRANCH done_ts end_ts copy_ts_byte
+  LABEL copy_ts_byte
+    idx = LOAD i 8
+    b = LOAD ts 1 idx
+    STORE result b 1 idx
+    nidx = IADD idx 1 8
+    STORE i nidx 8
+    JUMP copy_ts
+  LABEL end_ts
+    STORE out_pos 19 8
+
+  # Append " PROCESSED BY CONSUMER\n" literal
+  pos = LOAD out_pos 8
+  STORE result 32 1 pos
+  pos = IADD pos 1 8
+  STORE result 80 1 pos
+  pos = IADD pos 1 8
+  STORE result 82 1 pos
+  pos = IADD pos 1 8
+  STORE result 79 1 pos
+  pos = IADD pos 1 8
+  STORE result 67 1 pos
+  pos = IADD pos 1 8
+  STORE result 69 1 pos
+  pos = IADD pos 1 8
+  STORE result 83 1 pos
+  pos = IADD pos 1 8
+  STORE result 83 1 pos
+  pos = IADD pos 1 8
+  STORE result 69 1 pos
+  pos = IADD pos 1 8
+  STORE result 68 1 pos
+  pos = IADD pos 1 8
+  STORE result 32 1 pos
+  pos = IADD pos 1 8
+  STORE result 66 1 pos
+  pos = IADD pos 1 8
+  STORE result 89 1 pos
+  pos = IADD pos 1 8
+  STORE result 32 1 pos
+  pos = IADD pos 1 8
+  STORE result 67 1 pos
+  pos = IADD pos 1 8
+  STORE result 79 1 pos
+  pos = IADD pos 1 8
+  STORE result 78 1 pos
+  pos = IADD pos 1 8
+  STORE result 83 1 pos
+  pos = IADD pos 1 8
+  STORE result 85 1 pos
+  pos = IADD pos 1 8
+  STORE result 77 1 pos
+  pos = IADD pos 1 8
+  STORE result 69 1 pos
+  pos = IADD pos 1 8
+  STORE result 82 1 pos
+  pos = IADD pos 1 8
+  STORE result 10 1 pos
+  pos = IADD pos 1 8
+  STORE out_pos pos 8
+
+  # Find body start: scan for CR LF CR LF (13 10 13 10), body_start = idx+4
+  STORE scan 0 8
+  LABEL find_body
+    sc = LOAD scan 8
+    chk = IADD sc 3 8
+    past = IGE chk rlen 8
+    BRANCH past no_header check_crlf
+  LABEL check_crlf
+    sc = LOAD scan 8
+    c0 = LOAD raw 1 sc
+    o1 = IADD sc 1 8
+    c1 = LOAD raw 1 o1
+    o2 = IADD sc 2 8
+    c2 = LOAD raw 1 o2
+    o3 = IADD sc 3 8
+    c3 = LOAD raw 1 o3
+    isc0 = IEQ c0 13 1
+    isl1 = IEQ c1 10 1
+    isc2 = IEQ c2 13 1
+    isl3 = IEQ c3 10 1
+    a1 = AND isc0 isl1 1
+    a2 = AND isc2 isl3 1
+    found = AND a1 a2 1
+    BRANCH found set_body inc_scan
+  LABEL inc_scan
+    sc = LOAD scan 8
+    nsc = IADD sc 1 8
+    STORE scan nsc 8
+    JUMP find_body
+  LABEL set_body
+    sc = LOAD scan 8
+    bs = IADD sc 4 8
+    STORE body_start bs 8
+    JUMP copy_body_init
+  LABEL no_header
+    STORE body_start 0 8
+    JUMP copy_body_init
+
+  # Copy body bytes from raw[body_start .. rlen) into result
+  LABEL copy_body_init
+    STORE i 0 8
+  LABEL copy_body
+    idx = LOAD i 8
+    bs = LOAD body_start 8
+    srcidx = IADD bs idx 8
+    atend = IGE srcidx rlen 8
+    BRANCH atend end_body copy_body_byte
+  LABEL copy_body_byte
+    idx = LOAD i 8
+    bs = LOAD body_start 8
+    srcidx = IADD bs idx 8
+    b = LOAD raw 1 srcidx
+    pos = LOAD out_pos 8
+    STORE result b 1 pos
+    npos = IADD pos 1 8
+    STORE out_pos npos 8
+    nidx = IADD idx 1 8
+    STORE i nidx 8
+    JUMP copy_body
+  LABEL end_body
+    pos = LOAD out_pos 8
+    STORE result_len pos 8
+
+  FREE out_pos
+  FREE i
+  FREE body_start
+  FREE scan
+END

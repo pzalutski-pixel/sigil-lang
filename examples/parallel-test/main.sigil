@@ -1,0 +1,21 @@
+EXECUTABLE parallel-test
+
+DESCRIPTION
+  Test parallel SPAWN - multiple workers.
+
+USES worker1.pattern
+USES worker2.pattern
+USES worker3.pattern
+
+ENTRY
+  CALL par-print-spawning
+  h1 = SPAWN worker1
+  h2 = SPAWN worker2
+  h3 = SPAWN worker3
+  CALL par-print-waiting
+  r1 = WAIT h1
+  r2 = WAIT h2
+  r3 = WAIT h3
+  CALL par-print-done
+  SET status 0
+END_EXECUTABLE

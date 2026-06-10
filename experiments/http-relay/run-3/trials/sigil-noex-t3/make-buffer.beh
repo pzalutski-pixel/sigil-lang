@@ -1,0 +1,15 @@
+BEHAVIOR make-buffer
+
+DESCRIPTION
+  Provides a fresh zeroed 65536-byte scratch buffer as an output handle.
+  Used as the destination for assembling the consumer output via copy.
+
+CONTRACT
+  OUTPUT buf bytes 65536
+  GUARANTEES writes_output
+
+HASH f20d2b06
+
+IMPLEMENTATION
+  STORE buf 0 1 0
+END

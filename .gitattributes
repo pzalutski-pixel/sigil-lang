@@ -1,0 +1,4 @@
+# Shell scripts must use LF — they run on Linux/macOS CI runners, where a CRLF
+# in the shebang/line endings makes bash fail. Pin them regardless of a
+# contributor's core.autocrlf setting.
+*.sh text eol=lf

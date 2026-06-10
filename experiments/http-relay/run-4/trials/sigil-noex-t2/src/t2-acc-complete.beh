@@ -1,0 +1,60 @@
+BEHAVIOR t2-acc-complete
+
+DESCRIPTION
+  Reports whether the accumulator holds a complete request: scans the data
+  region acc[8 .. 8+len) for the CRLFCRLF header/body separator and, if found,
+  checks that at least 11 body bytes (the fixed Content-Length of this relay's
+  POST) follow it. done=1 when complete, else 0. Used as the recv-loop exit
+  condition so the consumer keeps receiving until the whole body has arrived.
+
+CONTRACT
+  INPUT acc bytes 65536
+  OUTPUT done int 8
+  GUARANTEES writes_output
+
+HASH a5aa864f
+
+IMPLEMENTATION
+  len = LOAD acc 8 0
+  i = ALLOC 8 int
+  STORE i 0 8
+  res = ALLOC 8 int
+  STORE res 0 8
+  LABEL scan
+    iv = LOAD i 8
+    lim = ISUB len 3 8
+    cont = ILT iv lim 8
+    BRANCH cont check done
+  LABEL check
+    a0 = IADD iv 8 8
+    b0 = LOAD acc 1 a0
+    a1 = IADD iv 9 8
+    b1 = LOAD acc 1 a1
+    a2 = IADD iv 10 8
+    b2 = LOAD acc 1 a2
+    a3 = IADD iv 11 8
+    b3 = LOAD acc 1 a3
+    e0 = IEQ b0 13 1
+    e1 = IEQ b1 10 1
+    e2 = IEQ b2 13 1
+    e3 = IEQ b3 10 1
+    s01 = AND e0 e1 8
+    s23 = AND e2 e3 8
+    allm = AND s01 s23 8
+    BRANCH allm hit advance
+  LABEL hit
+    bodystart = IADD iv 4 8
+    avail = ISUB len bodystart 8
+    enough = IGE avail 11 8
+    STORE res enough 8
+    JUMP done
+  LABEL advance
+    next = IADD iv 1 8
+    STORE i next 8
+    JUMP scan
+  LABEL done
+    rv = LOAD res 8
+    FREE res
+    FREE i
+    STORE done rv 8
+END

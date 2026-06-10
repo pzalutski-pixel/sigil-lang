@@ -1,0 +1,42 @@
+BEHAVIOR fill
+
+DESCRIPTION
+  Fills count bytes of buffer, starting at offset, with a byte value.
+  Returns the number of bytes written.
+
+CONTRACT
+  INPUT buffer bytes 65536
+  INPUT offset int 8
+  INPUT value int 8
+  INPUT count int 8
+  OUTPUT bytes_written int 8
+  GUARANTEES writes_output
+
+HASH b41b2df1
+
+IMPLEMENTATION
+  offset_val = LOAD offset 8
+  count_val = LOAD count 8
+  byte_val = LOAD value 8
+
+  i_h = ALLOC 8 int
+  STORE i_h 0 8
+
+  LABEL loop
+    i = LOAD i_h 8
+    done_check = IGE i count_val 8
+    BRANCH done_check done continue
+
+  LABEL continue
+    i = LOAD i_h 8
+    pos = IADD offset_val i 8
+    STORE buffer byte_val 1 pos
+    new_i = IADD i 1 8
+    STORE i_h new_i 8
+    JUMP loop
+
+  LABEL done
+    final_count = LOAD i_h 8
+    STORE bytes_written final_count 8
+    FREE i_h
+END

@@ -1,0 +1,22 @@
+BEHAVIOR array-get
+
+DESCRIPTION
+  Returns the element at index (0-based) of an int array. The caller is
+  responsible for index < len (use array-len); out-of-range reads whatever the
+  buffer holds at that slot.
+
+CONTRACT
+  INPUT arr bytes 65536
+  INPUT index int 8
+  OUTPUT value int 8
+  GUARANTEES writes_output
+
+HASH 8c0f76d8
+
+IMPLEMENTATION
+  iv = LOAD index 8
+  e = IMUL iv 8 8
+  off = IADD e 16 8
+  v = LOAD arr 8 off
+  STORE value v 8
+END

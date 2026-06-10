@@ -1,0 +1,23 @@
+BEHAVIOR bind-8080
+
+DESCRIPTION
+  Binds a socket to port 8080 on all interfaces.
+  Uses stdlib bind behavior which delegates to runtime.
+
+CONTRACT
+  INPUT sock_fd int 8
+  OUTPUT status int 8
+  REQUIRES bind@697435f5 make-sockaddr@a9866fc0
+  GUARANTEES writes_output
+
+HASH aeecef12
+
+COMPOSITION
+  # Build the sockaddr_in via the stdlib (port 8080, ip 0.0.0.0 = all interfaces)
+  addr_result = CALL make-sockaddr 8080 0
+
+  # Call stdlib bind (delegated to runtime)
+  bind_result = CALL bind sock_fd addr_result.addr addr_result.addr_len
+
+  SET status bind_result.status
+END

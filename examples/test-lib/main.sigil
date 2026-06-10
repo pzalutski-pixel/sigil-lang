@@ -1,0 +1,9 @@
+EXECUTABLE test-lib
+
+DESCRIPTION
+  Test linking against stdlib library.
+  Uses println from stdlib.
+
+ENTRY
+  CALL main -> status
+END_EXECUTABLE

@@ -1,0 +1,56 @@
+BEHAVIOR build-post
+
+DESCRIPTION
+  Builds a minimal HTTP/1.0 POST request whose body is the given bytes.
+  Header is "POST / HTTP/1.0\r\n\r\n" (19 bytes); body is copied after it.
+  Outputs the full request bytes and its total length.
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT blen int 8
+  OUTPUT req bytes 65536
+  OUTPUT rlen int 8
+  GUARANTEES writes_output
+
+HASH 8188abe2
+
+IMPLEMENTATION
+  STORE req 80 1 0
+  STORE req 79 1 1
+  STORE req 83 1 2
+  STORE req 84 1 3
+  STORE req 32 1 4
+  STORE req 47 1 5
+  STORE req 32 1 6
+  STORE req 72 1 7
+  STORE req 84 1 8
+  STORE req 84 1 9
+  STORE req 80 1 10
+  STORE req 47 1 11
+  STORE req 49 1 12
+  STORE req 46 1 13
+  STORE req 48 1 14
+  STORE req 13 1 15
+  STORE req 10 1 16
+  STORE req 13 1 17
+  STORE req 10 1 18
+  n = LOAD blen 8
+  i = ALLOC 8 int
+  STORE i 0 8
+  LABEL loop_start
+  iv = LOAD i 8
+  done = IGE iv n 8
+  BRANCH done loop_end loop_body
+  LABEL loop_body
+  src_off = LOAD i 8
+  ch = LOAD body 1 src_off
+  dst_off = IADD iv 19 8
+  STORE req ch 1 dst_off
+  nv = IADD iv 1 8
+  STORE i nv 8
+  JUMP loop_start
+  LABEL loop_end
+  total = IADD n 19 8
+  STORE rlen total 8
+  FREE i
+END

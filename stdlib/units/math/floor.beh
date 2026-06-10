@@ -1,0 +1,22 @@
+BEHAVIOR floor
+
+DESCRIPTION
+  Largest integer <= x (mathematical floor), returned as an int. Truncation
+  (FTOI) rounds toward zero; for a negative x with a fractional part that is
+  one too high, so subtract the correction. floor(2.7)=2, floor(-2.3)=-3.
+
+CONTRACT
+  INPUT x float 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b6cfd5dd
+
+IMPLEMENTATION
+  xv = LOAD x 8
+  t = FTOI xv 8 8
+  tf = ITOF t 8 8
+  gt = FGT tf xv 8
+  r = ISUB t gt 8
+  STORE result r 8
+END

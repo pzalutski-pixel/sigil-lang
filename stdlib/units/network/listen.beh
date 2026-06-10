@@ -1,0 +1,17 @@
+BEHAVIOR listen
+
+DESCRIPTION
+  Server-side: starts listening for client connections.
+  Call after bind. Backlog is max pending queue size.
+  Then call accept to get client connections.
+  Returns 0 on success.
+
+CONTRACT
+  INPUT fd int 8
+  INPUT backlog int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH 95b7eb35
+
+NATIVE

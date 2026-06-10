@@ -1,0 +1,88 @@
+BEHAVIOR extract-body
+
+DESCRIPTION
+  Finds the "\r\n\r\n" header/body separator in an HTTP request buffer
+  (first len bytes) and copies everything after it into body, with its
+  length. If no separator is found, body is empty (length 0).
+
+CONTRACT
+  INPUT buffer bytes 65536
+  INPUT len int 8
+  OUTPUT body bytes 65536
+  OUTPUT body_length int 8
+  GUARANTEES writes_output
+
+HASH 1b8dfab2
+
+IMPLEMENTATION
+  STORE body_length 0 8
+  STORE body 0 1 0
+
+  i = ALLOC 8 int
+  STORE i 0 8
+  mlen = LOAD len 8
+
+  # scan for \r\n\r\n; need 4 bytes available
+  LABEL find_loop
+    idx = LOAD i 8
+    bound = IADD idx 3 8
+    past = IGE bound mlen 8
+    BRANCH past not_found check_sep
+
+  LABEL check_sep
+    idx = LOAD i 8
+    b1 = LOAD buffer 1 idx
+    o2 = IADD idx 1 8
+    b2 = LOAD buffer 1 o2
+    o3 = IADD idx 2 8
+    b3 = LOAD buffer 1 o3
+    o4 = IADD idx 3 8
+    b4 = LOAD buffer 1 o4
+    is_cr1 = IEQ b1 13 1
+    is_lf1 = IEQ b2 10 1
+    is_cr2 = IEQ b3 13 1
+    is_lf2 = IEQ b4 10 1
+    c1 = AND is_cr1 is_lf1 1
+    c2 = AND is_cr2 is_lf2 1
+    is_sep = AND c1 c2 1
+    BRANCH is_sep found inc
+
+  LABEL inc
+    idx = LOAD i 8
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP find_loop
+
+  LABEL found
+    sep = LOAD i 8
+    body_start = IADD sep 4 8
+    blen = ISUB mlen body_start 8
+
+    j = ALLOC 8 int
+    STORE j 0 8
+
+  LABEL copy_loop
+    k = LOAD j 8
+    cdone = IGE k blen 8
+    BRANCH cdone copy_done copy_byte
+
+  LABEL copy_byte
+    k = LOAD j 8
+    src = IADD body_start k 8
+    byte = LOAD buffer 1 src
+    STORE body byte 1 k
+    nk = IADD k 1 8
+    STORE j nk 8
+    JUMP copy_loop
+
+  LABEL copy_done
+    STORE body_length blen 8
+    FREE j
+    JUMP done
+
+  LABEL not_found
+    STORE body_length 0 8
+
+  LABEL done
+    FREE i
+END

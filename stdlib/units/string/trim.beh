@@ -1,0 +1,118 @@
+BEHAVIOR trim
+
+DESCRIPTION
+  Removes leading and trailing whitespace from byte sequence.
+  Whitespace: space (0x20), tab (0x09), newline (0x0A), carriage return (0x0D).
+  Output contains offset and length into original data.
+
+CONTRACT
+  INPUT data bytes 65536
+  OUTPUT trimmed bytes 16
+  GUARANTEES writes_output
+
+HASH 60b11a30
+
+IMPLEMENTATION
+  data_len = ALLOC 8 int
+  STORE data_len 0 8
+  max = ALLOC 8 int
+  STORE max 65536 8
+  start = ALLOC 8 int
+  STORE start 0 8
+  end = ALLOC 8 int
+  STORE end 0 8
+
+  LABEL get_len
+    dl_val = LOAD data_len 8
+    m_val = LOAD max 8
+    at_max = IGE dl_val m_val 8
+    BRANCH at_max len_done check_byte
+
+  LABEL check_byte
+    dl_val = LOAD data_len 8
+    byte = LOAD data 1 dl_val
+    is_null = IEQ byte 0 1
+    BRANCH is_null len_done inc_len
+
+  LABEL inc_len
+    dl_val = LOAD data_len 8
+    new_dl = IADD dl_val 1 8
+    STORE data_len new_dl 8
+    JUMP get_len
+
+  LABEL len_done
+    STORE start 0 8
+    dl_val = LOAD data_len 8
+    end_init = ISUB dl_val 1 8
+    STORE end end_init 8
+
+  LABEL find_start
+    s_val = LOAD start 8
+    dl_val = LOAD data_len 8
+    at_end = IGE s_val dl_val 8
+    BRANCH at_end all_whitespace check_start_ws
+
+  LABEL check_start_ws
+    s_val = LOAD start 8
+    byte = LOAD data 1 s_val
+    is_space = IEQ byte 32 1
+    is_tab = IEQ byte 9 1
+    is_newline = IEQ byte 10 1
+    is_cr = IEQ byte 13 1
+    ws1 = OR is_space is_tab 1
+    ws2 = OR is_newline is_cr 1
+    is_ws = OR ws1 ws2 1
+    BRANCH is_ws inc_start found_start
+
+  LABEL inc_start
+    s_val = LOAD start 8
+    new_s = IADD s_val 1 8
+    STORE start new_s 8
+    JUMP find_start
+
+  LABEL found_start
+    JUMP find_end
+
+  LABEL find_end
+    e_val = LOAD end 8
+    s_val = LOAD start 8
+    past_start = ILT e_val s_val 8
+    BRANCH past_start all_whitespace check_end_ws
+
+  LABEL check_end_ws
+    e_val = LOAD end 8
+    byte = LOAD data 1 e_val
+    is_space = IEQ byte 32 1
+    is_tab = IEQ byte 9 1
+    is_newline = IEQ byte 10 1
+    is_cr = IEQ byte 13 1
+    ws1 = OR is_space is_tab 1
+    ws2 = OR is_newline is_cr 1
+    is_ws = OR ws1 ws2 1
+    BRANCH is_ws dec_end found_end
+
+  LABEL dec_end
+    e_val = LOAD end 8
+    new_e = ISUB e_val 1 8
+    STORE end new_e 8
+    JUMP find_end
+
+  LABEL found_end
+    e_val = LOAD end 8
+    s_val = LOAD start 8
+    trim_len = ISUB e_val s_val 8
+    trim_len = IADD trim_len 1 8
+    STORE trimmed s_val 8 0
+    STORE trimmed trim_len 8 8
+    JUMP done
+
+  LABEL all_whitespace
+    STORE trimmed 0 8 0
+    STORE trimmed 0 8 8
+
+  LABEL done
+    FREE data_len
+    FREE max
+    FREE start
+    FREE end
+END

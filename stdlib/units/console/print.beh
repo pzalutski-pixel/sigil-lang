@@ -1,0 +1,13 @@
+BEHAVIOR print
+
+DESCRIPTION
+  Writes a string to standard output (stdout).
+  Does not add newline. Use println for newline.
+  The string carries its own length. A sink: consumes the string, returns nothing.
+
+CONTRACT
+  INPUT text string
+
+HASH a273ebb3
+
+NATIVE

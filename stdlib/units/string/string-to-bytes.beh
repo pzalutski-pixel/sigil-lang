@@ -1,0 +1,16 @@
+BEHAVIOR string-to-bytes
+
+DESCRIPTION
+  Translates a self-describing string into a raw byte buffer plus an explicit
+  length. A socket sends bytes, not strings, so to send a string literal you
+  translate it here first, then pass the bytes + length to send.
+
+CONTRACT
+  INPUT text string
+  OUTPUT data bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH a2e66e29
+
+NATIVE

@@ -1,0 +1,18 @@
+BEHAVIOR accept
+
+DESCRIPTION
+  Server-side: waits for and accepts a client connection.
+  Call after listen. Blocks until client connects.
+  Returns new client_fd for this connection.
+  Use client_fd with send/receive, then close-socket.
+
+CONTRACT
+  INPUT fd int 8
+  OUTPUT client_fd int 8
+  OUTPUT client_addr bytes 128
+  OUTPUT addr_len int 8
+  GUARANTEES writes_output
+
+HASH e88849be
+
+NATIVE

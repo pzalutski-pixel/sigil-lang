@@ -1,0 +1,8 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  HTTP file-relay consumer on port 9815.
+
+ENTRY
+  CALL main -> status
+END_EXECUTABLE

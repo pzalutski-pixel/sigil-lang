@@ -1,0 +1,33 @@
+BEHAVIOR array-push
+
+DESCRIPTION
+  Appends value to the array if there is room (len < cap), incrementing len.
+  status = 1 if appended, 0 if the array was full (value dropped). Operates on
+  the caller-owned buffer from array-init.
+
+CONTRACT
+  INPUT arr bytes 65536
+  INPUT value int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH c9c2e445
+
+IMPLEMENTATION
+  len = LOAD arr 8 0
+  cap = LOAD arr 8 8
+  full = IGE len cap 8
+  BRANCH full isfull dopush
+  LABEL dopush
+    v = LOAD value 8
+    e = IMUL len 8 8
+    off = IADD e 16 8
+    STORE arr v 8 off
+    nl = IADD len 1 8
+    STORE arr nl 8 0
+    STORE status 1 8
+    JUMP pdone
+  LABEL isfull
+    STORE status 0 8
+  LABEL pdone
+END

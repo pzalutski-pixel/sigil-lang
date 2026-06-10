@@ -1,0 +1,48 @@
+BEHAVIOR hex-encode
+
+DESCRIPTION
+  Lowercase hex encoding of the first len bytes of data (2 hex chars per byte).
+  result is null-terminated; length is the char count (2*len).
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT len int 8
+  OUTPUT result bytes 131072
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 99597304
+
+IMPLEMENTATION
+  STORE result 0 1 0
+  lenv = LOAD len 8
+  i = 0
+  out = 0
+
+  LABEL loop
+    done = IGE i lenv 8
+    BRANCH done fin body
+  LABEL body
+    b = LOAD data 1 i
+    bu = AND b 255 8
+    hi = SHR bu 4 8
+    lo = AND bu 15 8
+    hge = IGE hi 10 8
+    hadd = IMUL hge 39 8
+    hch = IADD hi 48 8
+    hch = IADD hch hadd 8
+    STORE result hch 1 out
+    out = IADD out 1 8
+    lge = IGE lo 10 8
+    ladd = IMUL lge 39 8
+    lch = IADD lo 48 8
+    lch = IADD lch ladd 8
+    STORE result lch 1 out
+    out = IADD out 1 8
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL fin
+    STORE result 0 1 out
+    STORE length out 8
+END

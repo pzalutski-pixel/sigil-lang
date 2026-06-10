@@ -1,0 +1,8 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  HTTP file relay producer: reads input.txt, POSTs to localhost:9822.
+
+ENTRY
+  CALL main -> status
+END_EXECUTABLE

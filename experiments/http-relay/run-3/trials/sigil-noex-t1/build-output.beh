@@ -1,0 +1,100 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Assembles the output file content:
+  <timestamp> + " PROCESSED BY CONSUMER\n" + <body>.
+  ts is tlen bytes; body is blen bytes; the middle literal is 23 bytes.
+
+CONTRACT
+  INPUT ts bytes 65536
+  INPUT tlen int 8
+  INPUT body bytes 65536
+  INPUT blen int 8
+  OUTPUT content bytes 65536
+  OUTPUT clen int 8
+  GUARANTEES writes_output
+
+HASH 18b111f4
+
+IMPLEMENTATION
+  tn = LOAD tlen 8
+  bn = LOAD blen 8
+  STORE content 0 1 0
+  i = ALLOC 8 int
+  STORE i 0 8
+  LABEL ts_start
+  iv = LOAD i 8
+  tdone = IGE iv tn 8
+  BRANCH tdone ts_end ts_body
+  LABEL ts_body
+  ch = LOAD ts 1 iv
+  STORE content ch 1 iv
+  nv = IADD iv 1 8
+  STORE i nv 8
+  JUMP ts_start
+  LABEL ts_end
+  STORE content 32 1 tn
+  m1 = IADD tn 1 8
+  STORE content 80 1 m1
+  m2 = IADD tn 2 8
+  STORE content 82 1 m2
+  m3 = IADD tn 3 8
+  STORE content 79 1 m3
+  m4 = IADD tn 4 8
+  STORE content 67 1 m4
+  m5 = IADD tn 5 8
+  STORE content 69 1 m5
+  m6 = IADD tn 6 8
+  STORE content 83 1 m6
+  m7 = IADD tn 7 8
+  STORE content 83 1 m7
+  m8 = IADD tn 8 8
+  STORE content 69 1 m8
+  m9 = IADD tn 9 8
+  STORE content 68 1 m9
+  m10 = IADD tn 10 8
+  STORE content 32 1 m10
+  m11 = IADD tn 11 8
+  STORE content 66 1 m11
+  m12 = IADD tn 12 8
+  STORE content 89 1 m12
+  m13 = IADD tn 13 8
+  STORE content 32 1 m13
+  m14 = IADD tn 14 8
+  STORE content 67 1 m14
+  m15 = IADD tn 15 8
+  STORE content 79 1 m15
+  m16 = IADD tn 16 8
+  STORE content 78 1 m16
+  m17 = IADD tn 17 8
+  STORE content 83 1 m17
+  m18 = IADD tn 18 8
+  STORE content 85 1 m18
+  m19 = IADD tn 19 8
+  STORE content 77 1 m19
+  m20 = IADD tn 20 8
+  STORE content 69 1 m20
+  m21 = IADD tn 21 8
+  STORE content 82 1 m21
+  m22 = IADD tn 22 8
+  STORE content 10 1 m22
+  base = IADD tn 23 8
+  j = ALLOC 8 int
+  STORE j 0 8
+  LABEL body_start
+  jv = LOAD j 8
+  bdone = IGE jv bn 8
+  BRANCH bdone body_end body_body
+  LABEL body_body
+  bch = LOAD body 1 jv
+  dst = IADD base jv 8
+  STORE content bch 1 dst
+  njv = IADD jv 1 8
+  STORE j njv 8
+  JUMP body_start
+  LABEL body_end
+  total = IADD base bn 8
+  STORE clen total 8
+  FREE i
+  FREE j
+END

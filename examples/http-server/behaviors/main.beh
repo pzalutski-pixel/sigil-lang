@@ -1,0 +1,49 @@
+BEHAVIOR main
+
+DESCRIPTION
+  HTTP server that accepts one connection and sends response.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c bind-8080@aeecef12 listen@95b7eb35 accept@e88849be send@8c6f3cb7 string-to-bytes@a2e66e29 println@a273ebb3 close-socket@d4ba30e5
+  GUARANTEES writes_output
+
+HASH d44b685d
+
+COMPOSITION
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Bind to port 8080. This minimal demo does not handle bind/listen failure;
+  # their status outputs are deliberately discarded.
+  bind_result = CALL bind-8080 sock_fd
+  DISCARD bind_result
+
+  # Listen with backlog 10
+  listen_result = CALL listen sock_fd 10
+  DISCARD listen_result
+
+  # Print message
+  msg = "HTTP server on port 8080"
+  CALL println msg
+
+  # Accept connection (the peer address fields are unused by this demo)
+  accept_result = CALL accept sock_fd
+  client_fd = accept_result.client_fd
+  DISCARD accept_result.client_addr
+  DISCARD accept_result.addr_len
+
+  # Send response. A socket sends bytes, so translate the string literal to a
+  # byte buffer (+ length) and send that. The byte count is not checked here.
+  response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK"
+  resp = CALL string-to-bytes response
+  send_result = CALL send client_fd resp.data resp.length
+  DISCARD send_result
+
+  # Close client socket; its status is deliberately not handled.
+  close_result = CALL close-socket client_fd
+  DISCARD close_result
+
+  SET status 0
+END

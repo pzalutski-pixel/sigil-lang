@@ -1,0 +1,128 @@
+BEHAVIOR substring
+
+DESCRIPTION
+  Extracts a portion of byte sequence by offset and length.
+  Copies bytes to output handle. Bounds checked.
+  If offset + length exceeds data, copies only available bytes.
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT offset int 8
+  INPUT length int 8
+  OUTPUT result bytes 65536
+  OUTPUT actual_length int 8
+  GUARANTEES writes_output
+
+HASH 579fd4c0
+
+IMPLEMENTATION
+  data_len = ALLOC 8 int
+  STORE data_len 0 8
+  max_data = ALLOC 8 int
+  STORE max_data 65536 8
+  start = ALLOC 8 int
+  STORE start 0 8
+  req_len = ALLOC 8 int
+  STORE req_len 0 8
+  available = ALLOC 8 int
+  STORE available 0 8
+  copy_len = ALLOC 8 int
+  STORE copy_len 0 8
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  LABEL get_data_len
+    dl_val = LOAD data_len 8
+    md_val = LOAD max_data 8
+    at_max = IGE dl_val md_val 8
+    BRANCH at_max data_len_done check_data_byte
+
+  LABEL check_data_byte
+    dl_val = LOAD data_len 8
+    byte = LOAD data 1 dl_val
+    is_null = IEQ byte 0 1
+    BRANCH is_null data_len_done inc_data_len
+
+  LABEL inc_data_len
+    dl_val = LOAD data_len 8
+    new_dl = IADD dl_val 1 8
+    STORE data_len new_dl 8
+    JUMP get_data_len
+
+  LABEL data_len_done
+    start_val = LOAD offset 8
+    STORE start start_val 8
+    req_val = LOAD length 8
+    STORE req_len req_val 8
+    s_val = LOAD start 8
+    start_negative = ILT s_val 0 8
+    BRANCH start_negative clamp_start_zero check_start_max
+
+  LABEL clamp_start_zero
+    STORE start 0 8
+    JUMP check_start_max
+
+  LABEL check_start_max
+    s_val = LOAD start 8
+    dl_val = LOAD data_len 8
+    start_past_end = IGE s_val dl_val 8
+    BRANCH start_past_end empty_result calc_available
+
+  LABEL empty_result
+    STORE actual_length 0 8
+    STORE result 0 1 0
+    JUMP done
+
+  LABEL calc_available
+    dl_val = LOAD data_len 8
+    s_val = LOAD start 8
+    av_val = ISUB dl_val s_val 8
+    STORE available av_val 8
+    rq_val = LOAD req_len 8
+    av_val = LOAD available 8
+    req_exceeds = IGT rq_val av_val 8
+    BRANCH req_exceeds use_available use_requested
+
+  LABEL use_available
+    av_val = LOAD available 8
+    STORE copy_len av_val 8
+    JUMP do_copy
+
+  LABEL use_requested
+    rq_val = LOAD req_len 8
+    STORE copy_len rq_val 8
+    JUMP do_copy
+
+  LABEL do_copy
+    STORE i 0 8
+
+  LABEL copy_loop
+    i_val = LOAD i 8
+    cl_val = LOAD copy_len 8
+    done_copy = IGE i_val cl_val 8
+    BRANCH done_copy finish_copy copy_byte
+
+  LABEL copy_byte
+    s_val = LOAD start 8
+    i_val = LOAD i 8
+    src_idx = IADD s_val i_val 8
+    byte = LOAD data 1 src_idx
+    STORE result byte 1 i_val
+    new_i = IADD i_val 1 8
+    STORE i new_i 8
+    JUMP copy_loop
+
+  LABEL finish_copy
+    cl_val = LOAD copy_len 8
+    STORE result 0 1 cl_val
+    STORE actual_length cl_val 8
+
+  LABEL done
+    FREE data_len
+    FREE max_data
+    FREE start
+    FREE req_len
+    FREE available
+    FREE copy_len
+    FREE i
+END

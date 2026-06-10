@@ -1,0 +1,89 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Assembles the consumer output buffer:
+  <ts(19 bytes)> + " PROCESSED BY CONSUMER" + 0x0A + <body>.
+  ts is the 19-byte "YYYY-MM-DD HH:MM:SS" timestamp text produced by
+  format-time; body/body_len is the request body. out_len is the total length.
+
+CONTRACT
+  INPUT ts bytes 32
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT out bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH 4ead1cca
+
+IMPLEMENTATION
+  # Copy the 19 timestamp characters into out[0..19]
+  ti = ALLOC 8 int
+  STORE ti 0 8
+
+  LABEL ts_loop
+    idx = LOAD ti 8
+    done_ts = IGE idx 19 8
+    BRANCH done_ts ts_done ts_copy
+
+  LABEL ts_copy
+    idx = LOAD ti 8
+    b = LOAD ts 1 idx
+    STORE out b 1 idx
+    nidx = IADD idx 1 8
+    STORE ti nidx 8
+    JUMP ts_loop
+
+  LABEL ts_done
+    # Write " PROCESSED BY CONSUMER" starting at offset 19 (22 bytes)
+    STORE out 32 1 19
+    STORE out 80 1 20
+    STORE out 82 1 21
+    STORE out 79 1 22
+    STORE out 67 1 23
+    STORE out 69 1 24
+    STORE out 83 1 25
+    STORE out 83 1 26
+    STORE out 69 1 27
+    STORE out 68 1 28
+    STORE out 32 1 29
+    STORE out 66 1 30
+    STORE out 89 1 31
+    STORE out 32 1 32
+    STORE out 67 1 33
+    STORE out 79 1 34
+    STORE out 78 1 35
+    STORE out 83 1 36
+    STORE out 85 1 37
+    STORE out 77 1 38
+    STORE out 69 1 39
+    STORE out 82 1 40
+    # newline at offset 41
+    STORE out 10 1 41
+
+    # Copy body starting at offset 42
+    bi = ALLOC 8 int
+    STORE bi 0 8
+
+  LABEL body_loop
+    bidx = LOAD bi 8
+    blen = LOAD body_len 8
+    done_body = IGE bidx blen 8
+    BRANCH done_body body_done body_copy
+
+  LABEL body_copy
+    bidx = LOAD bi 8
+    bb = LOAD body 1 bidx
+    dst = IADD bidx 42 8
+    STORE out bb 1 dst
+    nbidx = IADD bidx 1 8
+    STORE bi nbidx 8
+    JUMP body_loop
+
+  LABEL body_done
+    blen = LOAD body_len 8
+    total = IADD blen 42 8
+    STORE out_len total 8
+    FREE ti
+    FREE bi
+END

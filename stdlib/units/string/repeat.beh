@@ -1,0 +1,52 @@
+BEHAVIOR repeat
+
+DESCRIPTION
+  Concatenates the null-terminated string s n times into result (n <= 0 yields
+  an empty string). result is null-terminated; length excludes the terminator.
+
+CONTRACT
+  INPUT s bytes 65536
+  INPUT n int 8
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 2ef8959d
+
+IMPLEMENTATION
+  STORE result 0 1 0
+  nv = LOAD n 8
+  slen = 0
+  LABEL sl
+    c = LOAD s 1 slen
+    z = IEQ c 0 1
+    BRANCH z sld sli
+  LABEL sli
+    slen = IADD slen 1 8
+    JUMP sl
+
+  LABEL sld
+    out = 0
+    k = 0
+  LABEL outer
+    kdone = IGE k nv 8
+    BRANCH kdone fin inner_start
+  LABEL inner_start
+    j = 0
+  LABEL inner
+    jdone = IGE j slen 8
+    BRANCH jdone nextk copy
+  LABEL copy
+    cc = LOAD s 1 j
+    STORE result cc 1 out
+    out = IADD out 1 8
+    j = IADD j 1 8
+    JUMP inner
+  LABEL nextk
+    k = IADD k 1 8
+    JUMP outer
+
+  LABEL fin
+    STORE result 0 1 out
+    STORE length out 8
+END

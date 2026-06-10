@@ -1,0 +1,41 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Listens on TCP port 9811 for a single HTTP POST, prepends a timestamp and
+  " PROCESSED BY CONSUMER\n" to the request body, and writes the result to
+  output.txt.
+
+ENTRY
+  # --- create + bind + listen on port 9811 ---
+  sock = CALL socket 2 1
+  addr = CALL make-sockaddr 9811 0
+  bnd = CALL bind sock.fd addr.addr addr.addr_len
+  DISCARD bnd.status
+  lis = CALL listen sock.fd 1
+  DISCARD lis.status
+
+  # --- accept one client, receive the request ---
+  cli = CALL accept sock.fd
+  DISCARD cli.client_addr
+  DISCARD cli.addr_len
+  req = CALL receive cli.client_fd 65536
+
+  # --- timestamp ---
+  t = CALL now
+  ft = CALL format-time t.timestamp
+  DISCARD ft.length
+
+  # --- assemble framed output ---
+  out = CALL build-output req.buffer req.bytes_received ft.formatted
+
+  # --- write to output.txt ---
+  path = "output.txt"
+  wr = CALL write-file-all path out.result out.length
+  DISCARD wr.bytes_written
+
+  # --- tidy up sockets ---
+  cc = CALL close-socket cli.client_fd
+  DISCARD cc.status
+  cs = CALL close-socket sock.fd
+  DISCARD cs.status
+END_EXECUTABLE

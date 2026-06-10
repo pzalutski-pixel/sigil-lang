@@ -1,0 +1,11 @@
+BEHAVIOR par-print-spawning
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Spawning 3 workers..."
+  CALL println msg
+END

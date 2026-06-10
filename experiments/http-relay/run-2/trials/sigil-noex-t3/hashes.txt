@@ -1,0 +1,7 @@
+addr-server        9e6c0dad
+addr-client        9e6c0dad
+path-input         b4917e33
+path-output        b4917e33
+extract-body       3481f1e1
+assemble-output    ebad9b4c
+make-request       a2c6ea8f

@@ -1,0 +1,23 @@
+BEHAVIOR bind-9753
+
+DESCRIPTION
+  Binds a socket to port 9753 on all interfaces.
+  Uses stdlib bind behavior which delegates to runtime.
+
+CONTRACT
+  INPUT sock_fd int 8
+  OUTPUT status int 8
+  REQUIRES bind@697435f5 make-addr-9753@00f67ec4
+  GUARANTEES writes_output
+
+HASH 2c5b37ae
+
+COMPOSITION
+  # Build sockaddr_in for port 9753
+  addr_result = CALL make-addr-9753
+
+  # Call stdlib bind (delegated to runtime)
+  bind_result = CALL bind sock_fd addr_result.addr 16
+
+  SET status bind_result.status
+END

@@ -1,0 +1,106 @@
+BEHAVIOR extract-http-body
+
+DESCRIPTION
+  Extracts the body from an HTTP request.
+  Finds \r\n\r\n delimiter and returns content after it.
+  Returns empty body if delimiter not found.
+
+CONTRACT
+  INPUT raw bytes 65536
+  INPUT raw_len int 8
+  OUTPUT body bytes 65536
+  OUTPUT body_len int 8
+  GUARANTEES writes_output
+
+HASH 1e5f295a
+
+IMPLEMENTATION
+  i = ALLOC 8 int
+  STORE i 0 8
+  found = ALLOC 8 int
+  STORE found 0 8
+  body_start = ALLOC 8 int
+  STORE body_start 0 8
+
+  len = LOAD raw_len 8
+
+  # Search for \r\n\r\n (13 10 13 10)
+  LABEL search_loop
+    idx = LOAD i 8
+    # Need at least 4 bytes remaining
+    remaining = ISUB len idx 8
+    need_4 = ILT remaining 4 8
+    BRANCH need_4 not_found check_delimiter
+
+  LABEL check_delimiter
+    idx = LOAD i 8
+    b1 = LOAD raw 1 idx
+    idx1 = IADD idx 1 8
+    b2 = LOAD raw 1 idx1
+    idx2 = IADD idx 2 8
+    b3 = LOAD raw 1 idx2
+    idx3 = IADD idx 3 8
+    b4 = LOAD raw 1 idx3
+
+    # Check if \r\n\r\n (13 10 13 10)
+    is_cr1 = IEQ b1 13 1
+    is_lf1 = IEQ b2 10 1
+    is_cr2 = IEQ b3 13 1
+    is_lf2 = IEQ b4 10 1
+    c1 = AND is_cr1 is_lf1 1
+    c2 = AND is_cr2 is_lf2 1
+    all_match = AND c1 c2 1
+    BRANCH all_match found_delimiter inc_search
+
+  LABEL inc_search
+    idx = LOAD i 8
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP search_loop
+
+  LABEL found_delimiter
+    idx = LOAD i 8
+    # Body starts at idx + 4
+    start = IADD idx 4 8
+    STORE body_start start 8
+    STORE found 1 8
+    JUMP copy_body
+
+  LABEL not_found
+    # No delimiter found, output empty body
+    STORE body_len 0 8
+    STORE body 0 1 0
+    JUMP done
+
+  LABEL copy_body
+    start = LOAD body_start 8
+    len = LOAD raw_len 8
+    blen = ISUB len start 8
+    STORE body_len blen 8
+
+    # Initialize body with null terminator (ensures output is written)
+    STORE body 0 1 0
+
+    # Copy body bytes
+    STORE i 0 8
+  LABEL copy_loop
+    idx = LOAD i 8
+    blen = LOAD body_len 8
+    done_copy = IGE idx blen 8
+    BRANCH done_copy done copy_byte
+
+  LABEL copy_byte
+    idx = LOAD i 8
+    start = LOAD body_start 8
+    src_idx = IADD start idx 8
+    byte = LOAD raw 1 src_idx
+    STORE body byte 1 idx
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP copy_loop
+
+  LABEL done
+    FREE i
+    FREE found
+    FREE body_start
+END

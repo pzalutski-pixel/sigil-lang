@@ -1,0 +1,45 @@
+BEHAVIOR pad-right
+
+DESCRIPTION
+  Copies the null-terminated s into result, then appends the byte `value` until
+  result is `target` bytes long (no-op if s is already >= target). result is
+  null-terminated; length is the byte count (excluding the terminator).
+
+CONTRACT
+  INPUT s bytes 65536
+  INPUT target int 8
+  INPUT value int 8
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 69153687
+
+IMPLEMENTATION
+  STORE result 0 1 0
+  tv = LOAD target 8
+  bv = LOAD value 8
+  i = 0
+
+  LABEL cp
+    c = LOAD s 1 i
+    z = IEQ c 0 1
+    BRANCH z cpdone cpb
+  LABEL cpb
+    STORE result c 1 i
+    i = IADD i 1 8
+    JUMP cp
+
+  LABEL cpdone
+  LABEL pad
+    pdone = IGE i tv 8
+    BRANCH pdone fin padb
+  LABEL padb
+    STORE result bv 1 i
+    i = IADD i 1 8
+    JUMP pad
+
+  LABEL fin
+    STORE result 0 1 i
+    STORE length i 8
+END

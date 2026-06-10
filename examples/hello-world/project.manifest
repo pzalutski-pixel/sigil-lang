@@ -1,0 +1,10 @@
+PROJECT hello-world
+VERSION 1.0.0
+
+DESCRIPTION
+  Simplest possible program - prints "Hello, World!" to console.
+  Validates basic execution path and console output.
+
+ENTRY main behaviors/main.beh
+
+END

@@ -1,0 +1,55 @@
+BEHAVIOR error-messages-get
+
+DESCRIPTION
+  Maps error codes to human-readable error messages.
+  Returns the error message text for a given code. The message is a string,
+  which carries its own length, so no separate length output is needed.
+
+CONTRACT
+  INPUT error_code int 8
+  OUTPUT text string
+
+  GUARANTEES writes_output pure
+
+HASH d183f477
+
+IMPLEMENTATION
+  # Default error message for unknown codes
+  default_msg = "Unknown error"
+
+  # Load error_code value from input handle (Section 5.2: INPUTs are handles)
+  err = LOAD error_code 8
+
+  # Check for common error codes
+  is_zero = IEQ err 0 8
+  BRANCH is_zero success_msg check_enoent
+
+  LABEL success_msg
+    msg = "Operation successful"
+    SET text msg
+    JUMP done
+
+  LABEL check_enoent
+    is_two = IEQ err 2 8
+    BRANCH is_two not_found_msg check_eacces
+
+  LABEL not_found_msg
+    msg2 = "File not found"
+    SET text msg2
+    JUMP done
+
+  LABEL check_eacces
+    is_thirteen = IEQ err 13 8
+    BRANCH is_thirteen permission_msg default
+
+  LABEL permission_msg
+    msg3 = "Permission denied"
+    SET text msg3
+    JUMP done
+
+  LABEL default
+    SET text default_msg
+    JUMP done
+
+  LABEL done
+END

@@ -1,0 +1,13 @@
+BEHAVIOR println
+
+DESCRIPTION
+  Writes a string to standard output followed by newline.
+  The string carries its own length; appends 0x0A (line feed) after it.
+  A sink: consumes the string, returns nothing.
+
+CONTRACT
+  INPUT text string
+
+HASH a273ebb3
+
+NATIVE

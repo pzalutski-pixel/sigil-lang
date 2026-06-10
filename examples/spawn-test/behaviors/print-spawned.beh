@@ -1,0 +1,14 @@
+BEHAVIOR print-spawned
+
+DESCRIPTION
+  Prints spawned message.
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Spawned worker, waiting..."
+  CALL println msg
+END

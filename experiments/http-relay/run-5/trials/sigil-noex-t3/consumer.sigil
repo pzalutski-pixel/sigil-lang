@@ -1,0 +1,47 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Listens on TCP port 9813 for an HTTP POST, prepends a timestamp and
+  " PROCESSED BY CONSUMER\n" to the body, and writes the result to output.txt.
+
+ENTRY
+  # 1. create a listening TCP socket (AF_INET=2, SOCK_STREAM=1)
+  s = CALL socket 2 1
+
+  # 2. bind to 0.0.0.0:9813 (ip=0 => any)
+  a = CALL make-sockaddr 9813 0
+  b = CALL bind s.fd a.addr a.addr_len
+  DISCARD b.status
+
+  # 3. listen
+  l = CALL listen s.fd 1
+  DISCARD l.status
+
+  # 4. accept one client
+  ac = CALL accept s.fd
+  DISCARD ac.client_addr
+  DISCARD ac.addr_len
+
+  # 5. receive the request
+  rc = CALL receive ac.client_fd 65536
+
+  # 6. extract the HTTP body
+  ex = CALL extract-body rc.buffer rc.bytes_received
+
+  # 7. timestamp -> "YYYY-MM-DD HH:MM:SS"
+  t = CALL now
+  ft = CALL format-time t.timestamp
+
+  # 8. assemble "<ts> PROCESSED BY CONSUMER\n<body>"
+  rec = CALL assemble-record ft.formatted ft.length ex.body ex.body_len
+
+  # 9. write output.txt
+  wf = CALL write-file-all "output.txt" rec.record rec.rec_len
+  DISCARD wf.bytes_written
+
+  # 10. close sockets
+  ccl = CALL close-socket ac.client_fd
+  DISCARD ccl.status
+  scl = CALL close-socket s.fd
+  DISCARD scl.status
+END_EXECUTABLE

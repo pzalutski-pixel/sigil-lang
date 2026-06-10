@@ -1,0 +1,9 @@
+EXECUTABLE file-copy
+
+DESCRIPTION
+  Entry point for file-copy program.
+  Takes source and destination paths, copies file contents.
+
+ENTRY
+  CALL main -> status
+END_EXECUTABLE

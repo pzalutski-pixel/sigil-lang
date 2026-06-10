@@ -1,0 +1,35 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  HTTP client that reads input.txt and sends its content
+  as a POST request to localhost:9753.
+
+ENTRY
+  # Open input.txt for reading (flags=0)
+  file = CALL open "input.txt" 0
+
+  # Read file contents (up to 65536 bytes)
+  content = CALL read file.fd 65536
+
+  # Close input file
+  close_file = CALL close file.fd
+
+  # Build HTTP POST request
+  req = CALL build-http-post content.buffer content.bytes_read
+
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock = CALL socket 2 1
+
+  # Create client address for 127.0.0.1:9753
+  addr = CALL make-client-addr
+
+  # Connect to server
+  conn_status = CALL connect sock.fd addr.addr addr.addr_len
+
+  # Send HTTP request
+  sent = CALL send sock.fd req.request req.request_len
+
+  # Close socket
+  close_sock = CALL close-socket sock.fd
+
+END_EXECUTABLE

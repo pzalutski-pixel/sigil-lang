@@ -1,0 +1,160 @@
+BEHAVIOR assemble-output
+
+DESCRIPTION
+  Builds the consumer output buffer.
+  Finds the HTTP body (after the first CRLFCRLF) in the request, then writes:
+    ts (ts_len bytes) + mid (mid_len bytes) + body (rest of request)
+  into out, and sets out_len to the total number of bytes written.
+
+CONTRACT
+  INPUT ts bytes 32
+  INPUT ts_len int 8
+  INPUT mid bytes 65536
+  INPUT mid_len int 8
+  INPUT req bytes 65536
+  INPUT req_len int 8
+  OUTPUT out bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH 7367f6e6
+
+IMPLEMENTATION
+  # default: empty output (covers any path)
+  STORE out 0 1 0
+  STORE out_len 0 8
+
+  scan = ALLOC 8 int
+  STORE scan 0 8
+  body_start = ALLOC 8 int
+  STORE body_start 0 8
+  found = ALLOC 8 int
+  STORE found 0 8
+  w = ALLOC 8 int
+  STORE w 0 8
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  rlen = LOAD req_len 8
+
+  # Find first CRLFCRLF (13 10 13 10). body_start = index after it.
+  LABEL find_loop
+    s = LOAD scan 8
+    chk = IADD s 3 8
+    past = IGE chk rlen 8
+    BRANCH past no_body check_pat
+
+  LABEL check_pat
+    s = LOAD scan 8
+    b1 = LOAD req 1 s
+    o1 = IADD s 1 8
+    b2 = LOAD req 1 o1
+    o2 = IADD s 2 8
+    b3 = LOAD req 1 o2
+    o3 = IADD s 3 8
+    b4 = LOAD req 1 o3
+    c1 = IEQ b1 13 1
+    c2 = IEQ b2 10 1
+    c3 = IEQ b3 13 1
+    c4 = IEQ b4 10 1
+    p1 = AND c1 c2 1
+    p2 = AND c3 c4 1
+    is_end = AND p1 p2 1
+    BRANCH is_end mark_body inc_scan
+
+  LABEL inc_scan
+    s = LOAD scan 8
+    ns = IADD s 1 8
+    STORE scan ns 8
+    JUMP find_loop
+
+  LABEL mark_body
+    s = LOAD scan 8
+    bs = IADD s 4 8
+    STORE body_start bs 8
+    STORE found 1 8
+    JUMP write_start
+
+  LABEL no_body
+    # No CRLFCRLF found: treat whole request as body (defensive)
+    STORE body_start 0 8
+    STORE found 0 8
+    JUMP write_start
+
+  LABEL write_start
+    STORE w 0 8
+
+  # Copy ts
+  LABEL copy_ts
+    idx = LOAD i 8
+    tl = LOAD ts_len 8
+    done = IGE idx tl 8
+    BRANCH done end_ts copy_ts_byte
+
+  LABEL copy_ts_byte
+    idx = LOAD i 8
+    byte = LOAD ts 1 idx
+    wpos = LOAD w 8
+    STORE out byte 1 wpos
+    nw = IADD wpos 1 8
+    STORE w nw 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_ts
+
+  LABEL end_ts
+    STORE i 0 8
+
+  # Copy mid
+  LABEL copy_mid
+    idx = LOAD i 8
+    ml = LOAD mid_len 8
+    done = IGE idx ml 8
+    BRANCH done end_mid copy_mid_byte
+
+  LABEL copy_mid_byte
+    idx = LOAD i 8
+    byte = LOAD mid 1 idx
+    wpos = LOAD w 8
+    STORE out byte 1 wpos
+    nw = IADD wpos 1 8
+    STORE w nw 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_mid
+
+  LABEL end_mid
+    STORE i 0 8
+
+  # Copy body: from body_start to rlen
+  LABEL copy_body
+    idx = LOAD i 8
+    bs = LOAD body_start 8
+    src = IADD bs idx 8
+    done = IGE src rlen 8
+    BRANCH done end_body copy_body_byte
+
+  LABEL copy_body_byte
+    idx = LOAD i 8
+    bs = LOAD body_start 8
+    src = IADD bs idx 8
+    byte = LOAD req 1 src
+    wpos = LOAD w 8
+    STORE out byte 1 wpos
+    nw = IADD wpos 1 8
+    STORE w nw 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_body
+
+  LABEL end_body
+    total = LOAD w 8
+    STORE out_len total 8
+
+  LABEL done
+    FREE scan
+    FREE body_start
+    FREE found
+    FREE w
+    FREE i
+END

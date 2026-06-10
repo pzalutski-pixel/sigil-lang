@@ -1,0 +1,46 @@
+BEHAVIOR to-upper
+
+DESCRIPTION
+  Copies the null-terminated src into dst, converting ASCII a-z to A-Z.
+  dst is null-terminated; length is the byte count (excluding the terminator).
+
+CONTRACT
+  INPUT src bytes 65536
+  OUTPUT dst bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 7b782d38
+
+IMPLEMENTATION
+  STORE dst 0 1 0
+  i = 0
+
+  LABEL loop
+    c = LOAD src 1 i
+    cz = IEQ c 0 1
+    BRANCH cz fin body
+
+  LABEL body
+    cu = AND c 255 8
+    ge = IGE cu 97 8
+    le = ILE cu 122 8
+    is_lower = AND ge le 8
+    BRANCH is_lower upper keep
+
+  LABEL upper
+    up = ISUB cu 32 8
+    STORE dst up 1 i
+    JUMP adv
+
+  LABEL keep
+    STORE dst cu 1 i
+
+  LABEL adv
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL fin
+    STORE dst 0 1 i
+    STORE length i 8
+END

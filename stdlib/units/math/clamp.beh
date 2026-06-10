@@ -1,0 +1,38 @@
+BEHAVIOR clamp
+
+DESCRIPTION
+  Clamp x into [lo, hi]: returns lo if x < lo, hi if x > hi, else x.
+
+CONTRACT
+  INPUT x int 8
+  INPUT lo int 8
+  INPUT hi int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 33bec962
+
+IMPLEMENTATION
+  xv = LOAD x 8
+  lov = LOAD lo 8
+  hiv = LOAD hi 8
+  below = ILT xv lov 8
+  BRANCH below use_lo check_hi
+
+  LABEL use_lo
+    STORE result lov 8
+    JUMP end
+
+  LABEL check_hi
+    above = IGT xv hiv 8
+    BRANCH above use_hi use_x
+
+  LABEL use_hi
+    STORE result hiv 8
+    JUMP end
+
+  LABEL use_x
+    STORE result xv 8
+
+  LABEL end
+END

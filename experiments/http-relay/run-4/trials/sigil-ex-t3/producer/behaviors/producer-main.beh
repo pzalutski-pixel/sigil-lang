@@ -1,0 +1,40 @@
+BEHAVIOR producer-main
+
+DESCRIPTION
+  HTTP file relay producer. Reads input.txt and POSTs its contents as the body of
+  an HTTP request to localhost:9823.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES read-file-all@bf59f1e1 string-to-bytes@a2e66e29 concat-bytes@fa25bca7 socket@0fec0e0c make-sockaddr@a9866fc0 connect@697435f5 send@8c6f3cb7 close-socket@d4ba30e5
+  GUARANTEES writes_output
+
+HASH 9e4207c0
+
+COMPOSITION
+  # Read the file body
+  body = CALL read-file-all "input.txt"
+
+  # HTTP request header (the consumer copies everything after CRLFCRLF)
+  hdr = "POST / HTTP/1.1\r\nHost: localhost:9823\r\nContent-Length: 11\r\n\r\n"
+  hb = CALL string-to-bytes hdr
+
+  # Full request = header bytes + body bytes
+  req = CALL concat-bytes hb.data hb.length body.data body.length
+
+  # TCP socket + connect to 127.0.0.1:9823
+  sock = CALL socket 2 1
+  addr = CALL make-sockaddr 9823 16777343
+  conn = CALL connect sock.fd addr.addr addr.addr_len
+  DISCARD conn
+
+  # Send the request
+  snd = CALL send sock.fd req.result req.length
+  DISCARD snd
+
+  # Close
+  cs = CALL close-socket sock.fd
+  DISCARD cs
+
+  SET status 0
+END

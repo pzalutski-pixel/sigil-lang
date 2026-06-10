@@ -1,0 +1,11 @@
+BEHAVIOR pc-print-start
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Starting producer-consumer..."
+  CALL println msg
+END

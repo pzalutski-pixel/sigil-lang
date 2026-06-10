@@ -1,0 +1,17 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  Reads input.txt and POSTs its contents to localhost:9755 over HTTP.
+
+ENTRY
+  path = CALL make-input-path
+  ofd = CALL open path 0
+  rd = CALL read ofd.fd 4096
+  rq = CALL build-request rd.buffer rd.bytes_read
+  sk = CALL socket 2 1
+  ad = CALL make-connect-addr
+  cst = CALL connect sk.fd ad.addr ad.addr_len
+  snt = CALL send sk.fd rq.request rq.req_len
+  cs = CALL close-socket sk.fd
+  fc = CALL close ofd.fd
+END_EXECUTABLE

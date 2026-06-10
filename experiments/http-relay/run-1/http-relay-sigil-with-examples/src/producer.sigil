@@ -1,0 +1,8 @@
+EXECUTABLE http-relay-producer
+
+DESCRIPTION
+  Reads input.txt and sends content via HTTP POST to localhost:9753.
+
+ENTRY
+  CALL producer -> status
+END_EXECUTABLE

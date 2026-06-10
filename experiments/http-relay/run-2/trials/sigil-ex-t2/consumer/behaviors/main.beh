@@ -1,0 +1,54 @@
+BEHAVIOR main
+
+DESCRIPTION
+  Consumer: listens on port 9818 for an HTTP POST, prepends a
+  timestamp and PROCESSED BY CONSUMER line to the body, writes
+  the result to output.txt.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c make-addr-server@00f67ec4 bind@697435f5 listen@95b7eb35 accept@e88849be receive@2ae7614b now@cee78134 format-time@83ebda2d build-output@b9bc1e88 open@31f81967 write@874767ff close@d4ba30e5 close-socket@d4ba30e5
+  GUARANTEES writes_output
+
+HASH 52e71e57
+
+COMPOSITION
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Build server address and bind to port 9818
+  addr_result = CALL make-addr-server
+  bind_result = CALL bind sock_fd addr_result.addr 16
+
+  # Listen with backlog 10
+  listen_result = CALL listen sock_fd 10
+
+  # Accept one connection
+  accept_result = CALL accept sock_fd
+  client_fd = accept_result.client_fd
+
+  # Receive the request (up to 65536 bytes)
+  recv_result = CALL receive client_fd 65536
+
+  # Current timestamp formatted as YYYY-MM-DD HH:MM:SS
+  time_result = CALL now
+  fmt_result = CALL format-time time_result.timestamp
+
+  # Build processed output
+  out_result = CALL build-output recv_result.buffer recv_result.bytes_received fmt_result.formatted
+
+  # Open output.txt for writing (flags = 3 = write + create)
+  open_result = CALL open "output.txt" 3
+  out_fd = open_result.fd
+
+  # Write the result
+  write_result = CALL write out_fd out_result.result out_result.result_len
+
+  # Cleanup
+  close_file = CALL close out_fd
+  close_client = CALL close-socket client_fd
+  close_server = CALL close-socket sock_fd
+
+  SET status 0
+END

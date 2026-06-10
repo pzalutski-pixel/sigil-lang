@@ -1,0 +1,185 @@
+BEHAVIOR build-http-post
+
+DESCRIPTION
+  Builds a simple HTTP POST request with the given body.
+  Returns: POST / HTTP/1.1\r\nContent-Length: N\r\n\r\n<body>
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT request bytes 65536
+  OUTPUT request_len int 8
+  GUARANTEES writes_output
+
+HASH 757a97ba
+
+IMPLEMENTATION
+  # Initialize output position
+  pos = ALLOC 8 int
+  STORE pos 0 8
+
+  # Write "POST / HTTP/1.1\r\n"
+  STORE request 0x50 1 0
+  STORE request 0x4F 1 1
+  STORE request 0x53 1 2
+  STORE request 0x54 1 3
+  STORE request 0x20 1 4
+  STORE request 0x2F 1 5
+  STORE request 0x20 1 6
+  STORE request 0x48 1 7
+  STORE request 0x54 1 8
+  STORE request 0x54 1 9
+  STORE request 0x50 1 10
+  STORE request 0x2F 1 11
+  STORE request 0x31 1 12
+  STORE request 0x2E 1 13
+  STORE request 0x31 1 14
+  STORE request 0x0D 1 15
+  STORE request 0x0A 1 16
+
+  # Write "Content-Length: "
+  STORE request 0x43 1 17
+  STORE request 0x6F 1 18
+  STORE request 0x6E 1 19
+  STORE request 0x74 1 20
+  STORE request 0x65 1 21
+  STORE request 0x6E 1 22
+  STORE request 0x74 1 23
+  STORE request 0x2D 1 24
+  STORE request 0x4C 1 25
+  STORE request 0x65 1 26
+  STORE request 0x6E 1 27
+  STORE request 0x67 1 28
+  STORE request 0x74 1 29
+  STORE request 0x68 1 30
+  STORE request 0x3A 1 31
+  STORE request 0x20 1 32
+
+  STORE pos 33 8
+
+  # Convert body_len to string and write digits
+  blen = LOAD body_len 8
+  digit_buf = ALLOC 20 bytes
+  digit_count = ALLOC 8 int
+  STORE digit_count 0 8
+  num = ALLOC 8 int
+  STORE num blen 8
+
+  # Handle zero case
+  is_zero = IEQ blen 0 8
+  BRANCH is_zero write_zero digit_loop
+
+  LABEL write_zero
+    STORE digit_buf 0x30 1 0
+    STORE digit_count 1 8
+    JUMP write_digits
+
+  LABEL digit_loop
+    n = LOAD num 8
+    done_digits = IEQ n 0 8
+    BRANCH done_digits reverse_digits extract_digit
+
+  LABEL extract_digit
+    remainder = IMOD n 10 8
+    digit = IADD remainder 0x30 8
+    dc = LOAD digit_count 8
+    STORE digit_buf digit 1 dc
+    next_dc = IADD dc 1 8
+    STORE digit_count next_dc 8
+    quotient = IDIV n 10 8
+    STORE num quotient 8
+    JUMP digit_loop
+
+  LABEL reverse_digits
+    # Digits are in reverse order, reverse them
+    dc = LOAD digit_count 8
+    rev_idx = ALLOC 8 int
+    STORE rev_idx 0 8
+
+  LABEL reverse_loop
+    ri = LOAD rev_idx 8
+    half = IDIV dc 2 8
+    rev_done = IGE ri half 8
+    BRANCH rev_done free_rev swap_digits
+
+  LABEL swap_digits
+    end_idx = ISUB dc ri 8
+    end_idx2 = ISUB end_idx 1 8
+    b1 = LOAD digit_buf 1 ri
+    b2 = LOAD digit_buf 1 end_idx2
+    STORE digit_buf b2 1 ri
+    STORE digit_buf b1 1 end_idx2
+    next_ri = IADD ri 1 8
+    STORE rev_idx next_ri 8
+    JUMP reverse_loop
+
+  LABEL free_rev
+    FREE rev_idx
+    JUMP write_digits
+
+  LABEL write_digits
+    FREE num
+    # Write digit_count digits from digit_buf to request
+    wd_idx = ALLOC 8 int
+    STORE wd_idx 0 8
+    dc2 = LOAD digit_count 8
+
+  LABEL write_digit_loop
+    wdi = LOAD wd_idx 8
+    wd_done = IGE wdi dc2 8
+    BRANCH wd_done after_digits write_one_digit
+
+  LABEL write_one_digit
+    d = LOAD digit_buf 1 wdi
+    p = LOAD pos 8
+    STORE request d 1 p
+    next_p = IADD p 1 8
+    STORE pos next_p 8
+    next_wdi = IADD wdi 1 8
+    STORE wd_idx next_wdi 8
+    JUMP write_digit_loop
+
+  LABEL after_digits
+    FREE wd_idx
+    FREE digit_buf
+    FREE digit_count
+
+    # Write "\r\n\r\n"
+    p2 = LOAD pos 8
+    STORE request 0x0D 1 p2
+    p3 = IADD p2 1 8
+    STORE request 0x0A 1 p3
+    p4 = IADD p3 1 8
+    STORE request 0x0D 1 p4
+    p5 = IADD p4 1 8
+    STORE request 0x0A 1 p5
+    p6 = IADD p5 1 8
+    STORE pos p6 8
+
+    # Copy body
+    copy_idx = ALLOC 8 int
+    STORE copy_idx 0 8
+
+  LABEL copy_body_loop
+    ci = LOAD copy_idx 8
+    bl = LOAD body_len 8
+    copy_done = IGE ci bl 8
+    BRANCH copy_done finalize copy_one_byte
+
+  LABEL copy_one_byte
+    byte_val = LOAD body 1 ci
+    p7 = LOAD pos 8
+    STORE request byte_val 1 p7
+    next_p7 = IADD p7 1 8
+    STORE pos next_p7 8
+    next_ci = IADD ci 1 8
+    STORE copy_idx next_ci 8
+    JUMP copy_body_loop
+
+  LABEL finalize
+    FREE copy_idx
+    # Set request_len
+    final_len = LOAD pos 8
+    STORE request_len final_len 8
+    FREE pos
+END

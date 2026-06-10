@@ -1,0 +1,120 @@
+BEHAVIOR concat
+
+DESCRIPTION
+  Joins first + second into result.
+  Copies both sequences, adds null terminator.
+  Result can hold up to 131072 bytes.
+
+CONTRACT
+  INPUT first bytes 65536
+  INPUT second bytes 65536
+  OUTPUT result bytes 131072
+  GUARANTEES writes_output
+
+HASH 162ee9a3
+
+IMPLEMENTATION
+  # Get length of first string
+  len1 = ALLOC 8 int
+  STORE len1 0 8
+  max = ALLOC 8 int
+  STORE max 65536 8
+
+  LABEL get_len1
+    l1_val = LOAD len1 8
+    byte = LOAD first 1 l1_val
+    zero = ALLOC 1 int
+    STORE zero 0 1
+    zero_val = LOAD zero 1
+    FREE zero
+    is_null = IEQ byte zero_val 1
+    BRANCH is_null len1_done inc_len1
+
+  LABEL inc_len1
+    l1_val = LOAD len1 8
+    new_l1 = IADD l1_val 1 8
+    STORE len1 new_l1 8
+    max_val = LOAD max 8
+    at_max = IGE new_l1 max_val 8
+    BRANCH at_max len1_done get_len1
+
+  LABEL len1_done
+    # Get length of second string
+    len2 = ALLOC 8 int
+    STORE len2 0 8
+
+  LABEL get_len2
+    l2_val = LOAD len2 8
+    byte = LOAD second 1 l2_val
+    zero = ALLOC 1 int
+    STORE zero 0 1
+    zero_val = LOAD zero 1
+    FREE zero
+    is_null = IEQ byte zero_val 1
+    BRANCH is_null len2_done inc_len2
+
+  LABEL inc_len2
+    l2_val = LOAD len2 8
+    new_l2 = IADD l2_val 1 8
+    STORE len2 new_l2 8
+    max_val = LOAD max 8
+    at_max = IGE new_l2 max_val 8
+    BRANCH at_max len2_done get_len2
+
+  LABEL len2_done
+    # Copy first string to result
+    i = ALLOC 8 int
+    STORE i 0 8
+
+  LABEL copy_first
+    i_val = LOAD i 8
+    l1_val = LOAD len1 8
+    done_first = IGE i_val l1_val 8
+    BRANCH done_first start_copy_second copy_first_byte
+
+  LABEL copy_first_byte
+    i_val = LOAD i 8
+    byte = LOAD first 1 i_val
+    STORE result byte 1 i_val
+    new_i = IADD i_val 1 8
+    STORE i new_i 8
+    JUMP copy_first
+
+  LABEL start_copy_second
+    j = ALLOC 8 int
+    STORE j 0 8
+
+  LABEL copy_second
+    j_val = LOAD j 8
+    l2_val = LOAD len2 8
+    done_second = IGE j_val l2_val 8
+    BRANCH done_second finish_concat copy_second_byte
+
+  LABEL copy_second_byte
+    j_val = LOAD j 8
+    byte = LOAD second 1 j_val
+    l1_val = LOAD len1 8
+    dest_idx = IADD l1_val j_val 8
+    STORE result byte 1 dest_idx
+    new_j = IADD j_val 1 8
+    STORE j new_j 8
+    JUMP copy_second
+
+  LABEL finish_concat
+    # Add null terminator
+    l1_val = LOAD len1 8
+    l2_val = LOAD len2 8
+    total_len = IADD l1_val l2_val 8
+    zero_term = ALLOC 1 int
+    STORE zero_term 0 1
+    zt_val = LOAD zero_term 1
+    FREE zero_term
+    STORE result zt_val 1 total_len
+
+    # Cleanup
+    FREE len1
+    FREE len2
+    FREE max
+    FREE i
+    FREE j
+END

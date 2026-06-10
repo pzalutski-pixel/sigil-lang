@@ -1,0 +1,31 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Frames the consumer output into result: the 19-byte ts timestamp at offset 0,
+  then the fixed  PROCESSED BY CONSUMER + newline at offsets 19..41 (frame-mid),
+  then the first body_len bytes of body at offset 42. result_len is 42 +
+  body_len. ts_len is expected to be 19.
+
+CONTRACT
+  INPUT ts bytes 65536
+  INPUT ts_len int 8
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT result bytes 65536
+  OUTPUT result_len int 8
+  REQUIRES frame-mid@e6d87080 copy@05c62b49 add-int@506d7b8d
+  GUARANTEES writes_output
+
+HASH 8a0476f5
+
+COMPOSITION
+  ct = CALL copy ts 0 result 0 ts_len
+  DISCARD ct.bytes_copied
+  m = CALL frame-mid
+  cm = CALL copy m.buf 0 result 19 23
+  DISCARD cm.bytes_copied
+  cb = CALL copy body 0 result 42 body_len
+  DISCARD cb.bytes_copied
+  rl = CALL add-int 42 body_len
+  SET result_len rl.result
+END

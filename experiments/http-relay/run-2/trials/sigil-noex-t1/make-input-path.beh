@@ -1,0 +1,23 @@
+BEHAVIOR make-input-path
+
+DESCRIPTION
+  Emits the null-terminated path string "input.txt".
+
+CONTRACT
+  OUTPUT path bytes 4096
+  GUARANTEES writes_output
+
+HASH 33bfb87c
+
+IMPLEMENTATION
+  STORE path 105 1 0
+  STORE path 110 1 1
+  STORE path 112 1 2
+  STORE path 117 1 3
+  STORE path 116 1 4
+  STORE path 46 1 5
+  STORE path 116 1 6
+  STORE path 120 1 7
+  STORE path 116 1 8
+  STORE path 0 1 9
+END

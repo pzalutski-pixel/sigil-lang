@@ -1,0 +1,107 @@
+BEHAVIOR map-get
+
+DESCRIPTION
+  Looks up key in an open-addressing hash map. Hashes the first klen bytes of
+  key (FNV-1a) and linear-probes from hash%cap until the key is found (copies
+  its value into val + vlen, found=1) or an empty slot ends the probe (found=0,
+  vlen=0). Probing stops after cap tries.
+
+CONTRACT
+  INPUT map bytes 262144
+  INPUT key bytes 65536
+  INPUT klen int 8
+  OUTPUT val bytes 256
+  OUTPUT vlen int 8
+  OUTPUT found int 8
+  GUARANTEES writes_output
+
+HASH 0c5eee04
+
+IMPLEMENTATION
+  cap = LOAD map 8 0
+  kl = LOAD klen 8
+  STORE found 0 8
+  STORE vlen 0 8
+  STORE val 0 1 0
+  h = -3750763034362895725
+  hi = 0
+  LABEL hloop
+    hd = IGE hi kl 8
+    BRANCH hd hfin hbody
+  LABEL hbody
+    b = LOAD key 1 hi
+    bu = AND b 255 8
+    h = XOR h bu 8
+    h = IMUL h 1099511628211 8
+    hi = IADD hi 1 8
+    JUMP hloop
+  LABEL hfin
+  hp = AND h 9223372036854775807 8
+  slot = IMOD hp cap 8
+  tries = 0
+  LABEL ploop
+    pdone = IGE tries cap 8
+    BRANCH pdone gend pbody
+  LABEL pbody
+    e = IMUL slot 337 8
+    soff = IADD e 8 8
+    used = LOAD map 1 soff
+    used = AND used 255 8
+    isempty = IEQ used 0 8
+    BRANCH isempty gend notemp
+  LABEL notemp
+    istomb = IEQ used 2 8
+    BRANCH istomb nextslot checkkey
+  LABEL checkkey
+    skoff = IADD soff 1 8
+    sklen = LOAD map 8 skoff
+    samelen = IEQ sklen kl 8
+    BRANCH samelen cmpkey nextslot
+  LABEL cmpkey
+    kbase = IADD soff 9 8
+    j = 0
+    match = 1
+    LABEL cloop
+      cd = IGE j kl 8
+      BRANCH cd cdone cbody
+    LABEL cbody
+      ka = LOAD key 1 j
+      ka = AND ka 255 8
+      kboff = IADD kbase j 8
+      kb = LOAD map 1 kboff
+      kb = AND kb 255 8
+      neq = INE ka kb 8
+      BRANCH neq setnomatch cnext
+    LABEL setnomatch
+      match = 0
+      JUMP cdone
+    LABEL cnext
+      j = IADD j 1 8
+      JUMP cloop
+    LABEL cdone
+    BRANCH match copyval nextslot
+  LABEL nextslot
+    slot = IADD slot 1 8
+    slot = IMOD slot cap 8
+    tries = IADD tries 1 8
+    JUMP ploop
+  LABEL copyval
+    vlo = IADD soff 73 8
+    vl = LOAD map 8 vlo
+    vbase = IADD soff 81 8
+    ci = 0
+    LABEL vcopy
+      vcd = IGE ci vl 8
+      BRANCH vcd vcdone vcbody
+    LABEL vcbody
+      vsoff = IADD vbase ci 8
+      vb = LOAD map 1 vsoff
+      vb = AND vb 255 8
+      STORE val vb 1 ci
+      ci = IADD ci 1 8
+      JUMP vcopy
+    LABEL vcdone
+    STORE vlen vl 8
+    STORE found 1 8
+  LABEL gend
+END

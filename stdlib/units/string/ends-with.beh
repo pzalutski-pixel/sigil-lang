@@ -1,0 +1,61 @@
+BEHAVIOR ends-with
+
+DESCRIPTION
+  1 if the null-terminated string s ends with the null-terminated suffix,
+  else 0. Byte-by-byte (not unicode-aware).
+
+CONTRACT
+  INPUT s bytes 65536
+  INPUT suffix bytes 256
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 6ed5a8eb
+
+IMPLEMENTATION
+  slen = 0
+  LABEL slloop
+    sc0 = LOAD s 1 slen
+    sz = IEQ sc0 0 1
+    BRANCH sz sldone slinc
+  LABEL slinc
+    slen = IADD slen 1 8
+    JUMP slloop
+
+  LABEL sldone
+    flen = 0
+  LABEL flloop
+    fc0 = LOAD suffix 1 flen
+    fz = IEQ fc0 0 1
+    BRANCH fz fldone flinc
+  LABEL flinc
+    flen = IADD flen 1 8
+    JUMP flloop
+
+  LABEL fldone
+    toolong = IGT flen slen 8
+    BRANCH toolong nope startcmp
+
+  LABEL startcmp
+    start = ISUB slen flen 8
+    j = 0
+  LABEL cmploop
+    atend = IGE j flen 8
+    BRANCH atend yes cmpc
+  LABEL cmpc
+    si = IADD start j 8
+    a = LOAD s 1 si
+    b = LOAD suffix 1 j
+    eq = IEQ a b 1
+    BRANCH eq cmpadv nope
+  LABEL cmpadv
+    j = IADD j 1 8
+    JUMP cmploop
+
+  LABEL nope
+    STORE result 0 8
+    JUMP fin
+  LABEL yes
+    STORE result 1 8
+  LABEL fin
+END

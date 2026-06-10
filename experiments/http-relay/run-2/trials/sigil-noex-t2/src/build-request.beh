@@ -1,0 +1,87 @@
+BEHAVIOR build-request
+DESCRIPTION
+  Builds an HTTP POST request with the given body.
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT request bytes 65536
+  OUTPUT request_len int 8
+HASH 62e7924e
+IMPLEMENTATION
+  iptr = ALLOC 8 int
+  blen = LOAD body_len 8
+  STORE iptr 0 8
+  STORE request 80 1 0
+  STORE request 79 1 1
+  STORE request 83 1 2
+  STORE request 84 1 3
+  STORE request 32 1 4
+  STORE request 47 1 5
+  STORE request 32 1 6
+  STORE request 72 1 7
+  STORE request 84 1 8
+  STORE request 84 1 9
+  STORE request 80 1 10
+  STORE request 47 1 11
+  STORE request 49 1 12
+  STORE request 46 1 13
+  STORE request 49 1 14
+  STORE request 13 1 15
+  STORE request 10 1 16
+  STORE request 72 1 17
+  STORE request 111 1 18
+  STORE request 115 1 19
+  STORE request 116 1 20
+  STORE request 58 1 21
+  STORE request 32 1 22
+  STORE request 108 1 23
+  STORE request 111 1 24
+  STORE request 99 1 25
+  STORE request 97 1 26
+  STORE request 108 1 27
+  STORE request 104 1 28
+  STORE request 111 1 29
+  STORE request 115 1 30
+  STORE request 116 1 31
+  STORE request 13 1 32
+  STORE request 10 1 33
+  STORE request 67 1 34
+  STORE request 111 1 35
+  STORE request 110 1 36
+  STORE request 110 1 37
+  STORE request 101 1 38
+  STORE request 99 1 39
+  STORE request 116 1 40
+  STORE request 105 1 41
+  STORE request 111 1 42
+  STORE request 110 1 43
+  STORE request 58 1 44
+  STORE request 32 1 45
+  STORE request 99 1 46
+  STORE request 108 1 47
+  STORE request 111 1 48
+  STORE request 115 1 49
+  STORE request 101 1 50
+  STORE request 13 1 51
+  STORE request 10 1 52
+  STORE request 13 1 53
+  STORE request 10 1 54
+
+  LABEL bodycopy
+    j = LOAD iptr 8
+    bdone = IGE j blen 8
+    BRANCH bdone bodydone bodybyte
+
+  LABEL bodybyte
+    dstoff = IADD j 55 8
+    bv = LOAD body 1 j
+    STORE request bv 1 dstoff
+    nj = IADD j 1 8
+    STORE iptr nj 8
+    JUMP bodycopy
+
+  LABEL bodydone
+    total = IADD blen 55 8
+    STORE request_len total 8
+    FREE iptr
+END

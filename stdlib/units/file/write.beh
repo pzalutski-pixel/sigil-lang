@@ -1,0 +1,17 @@
+BEHAVIOR write
+
+DESCRIPTION
+  Writes bytes from buffer to file descriptor.
+  Returns number of bytes actually written.
+  Returns negative on error.
+
+CONTRACT
+  INPUT fd int 8
+  INPUT data bytes 65536
+  INPUT length int 8
+  OUTPUT bytes_written int 8
+  GUARANTEES writes_output
+
+HASH 874767ff
+
+NATIVE

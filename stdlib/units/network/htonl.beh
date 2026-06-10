@@ -1,0 +1,33 @@
+BEHAVIOR htonl
+
+DESCRIPTION
+  Converts 32-bit value from host to network byte order.
+  Network byte order is big-endian.
+  Reverses 4 bytes: 0xAABBCCDD becomes 0xDDCCBBAA.
+
+CONTRACT
+  INPUT value int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b15b0b3a
+
+IMPLEMENTATION
+  v = LOAD value 8
+  # Extract each byte
+  b0 = AND v 255 8
+  t1 = SHR v 8 8
+  b1 = AND t1 255 8
+  t2 = SHR v 16 8
+  b2 = AND t2 255 8
+  t3 = SHR v 24 8
+  b3 = AND t3 255 8
+  # Reverse: b0<<24 | b1<<16 | b2<<8 | b3
+  r0 = SHL b0 24 8
+  r1 = SHL b1 16 8
+  r2 = SHL b2 8 8
+  swapped = OR r0 r1 8
+  swapped = OR swapped r2 8
+  swapped = OR swapped b3 8
+  STORE result swapped 8
+END

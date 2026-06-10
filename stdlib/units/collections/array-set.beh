@@ -1,0 +1,20 @@
+BEHAVIOR array-set
+
+DESCRIPTION
+  Overwrites the element at index (0-based) of an int array with value. Does
+  not change len; the caller is responsible for index < len.
+
+CONTRACT
+  INPUT arr bytes 65536
+  INPUT index int 8
+  INPUT value int 8
+
+HASH ed299b48
+
+IMPLEMENTATION
+  iv = LOAD index 8
+  v = LOAD value 8
+  e = IMUL iv 8 8
+  off = IADD e 16 8
+  STORE arr v 8 off
+END

@@ -1,0 +1,8 @@
+EXECUTABLE http-server
+
+DESCRIPTION
+  HTTP server that accepts one connection and sends response.
+
+ENTRY
+  CALL main -> status
+END_EXECUTABLE

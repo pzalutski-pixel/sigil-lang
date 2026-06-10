@@ -1,0 +1,97 @@
+BEHAVIOR float-to-string
+
+DESCRIPTION
+  Formats an f64 as decimal text with exactly 6 fractional digits, into result
+  (null-terminated) with the char count in length. Sign '-' for negatives;
+  integer part has no leading zeros (except "0"); the fractional part is
+  round-half-up to 6 places with carry into the integer part. Examples:
+  float-to-string(3.14)="3.140000", (-2.5)="-2.500000", (0.0)="0.000000",
+  (123.456)="123.456000". A scratch buffer holds the reversed integer digits.
+
+CONTRACT
+  INPUT value float 8
+  OUTPUT result bytes 64
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 11d771cf
+
+IMPLEMENTATION
+  v = LOAD value 8
+  tmp = ALLOC 32 bytes
+  o = 0
+  zero = ITOF 0 8 8
+  neg = FLT v zero 8
+  BRANCH neg isneg afterneg
+  LABEL isneg
+    STORE result 45 1 o
+    o = IADD o 1 8
+    v = FSUB zero v 8
+  LABEL afterneg
+  ip = FTOI v 8 8
+  ipf = ITOF ip 8 8
+  frac = FSUB v ipf 8
+  m6 = ITOF 1000000 8 8
+  scaled = FMUL frac m6 8
+  one = ITOF 1 8 8
+  two = ITOF 2 8 8
+  half = FDIV one two 8
+  sh = FADD scaled half 8
+  fracint = FTOI sh 8 8
+  carry = IGE fracint 1000000 8
+  BRANCH carry docarry aftercarry
+  LABEL docarry
+    ip = IADD ip 1 8
+    fracint = 0
+  LABEL aftercarry
+  ipz = IEQ ip 0 8
+  BRANCH ipz ipzero ipnz
+  LABEL ipzero
+    STORE result 48 1 o
+    o = IADD o 1 8
+    JUMP afterip
+  LABEL ipnz
+    ti = 0
+    work = IADD ip 0 8
+    LABEL extract
+      exd = ILE work 0 8
+      BRANCH exd exdone exbody
+    LABEL exbody
+      dig = IMOD work 10 8
+      ch = IADD dig 48 8
+      STORE tmp ch 1 ti
+      ti = IADD ti 1 8
+      work = IDIV work 10 8
+      JUMP extract
+    LABEL exdone
+    ri = ISUB ti 1 8
+    LABEL revc
+      rd = ILT ri 0 8
+      BRANCH rd afterip revb
+    LABEL revb
+      cc = LOAD tmp 1 ri
+      cc = AND cc 255 8
+      STORE result cc 1 o
+      o = IADD o 1 8
+      ri = ISUB ri 1 8
+      JUMP revc
+  LABEL afterip
+  STORE result 46 1 o
+  o = IADD o 1 8
+  p = 100000
+  LABEL fracloop
+    pdone = ILE p 0 8
+    BRANCH pdone fracdone fracb
+  LABEL fracb
+    dq = IDIV fracint p 8
+    dd = IMOD dq 10 8
+    fch = IADD dd 48 8
+    STORE result fch 1 o
+    o = IADD o 1 8
+    p = IDIV p 10 8
+    JUMP fracloop
+  LABEL fracdone
+  STORE result 0 1 o
+  STORE length o 8
+  FREE tmp
+END

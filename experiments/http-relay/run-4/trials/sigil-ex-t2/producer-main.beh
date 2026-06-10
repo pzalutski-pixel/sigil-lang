@@ -1,0 +1,42 @@
+BEHAVIOR producer-main
+
+DESCRIPTION
+  Reads input.txt, opens a TCP connection to localhost:9822, and sends
+  the file contents as the body of an HTTP POST request.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES read-file-all@bf59f1e1 socket@0fec0e0c make-sockaddr@a9866fc0 connect@697435f5 build-request@2d0207a2 send@8c6f3cb7 close-socket@d4ba30e5
+  GUARANTEES writes_output
+
+HASH ca356d30
+
+COMPOSITION
+  # Read input.txt (exactly "Hello World", 11 bytes)
+  path = "input.txt"
+  file = CALL read-file-all path
+
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock = CALL socket 2 1
+
+  # sockaddr for 127.0.0.1:9822. ip packed network order, octet0 in low byte:
+  # 127.0.0.1 = 127 + (1 << 24) = 16777343
+  addr = CALL make-sockaddr 9822 16777343
+
+  # Connect to the consumer
+  conn = CALL connect sock.fd addr.addr addr.addr_len
+  DISCARD conn
+
+  # Build the HTTP POST request (prefix + body)
+  req = CALL build-request file.data file.length
+
+  # Send it
+  sent = CALL send sock.fd req.request req.request_length
+  DISCARD sent
+
+  # Close the socket
+  closed = CALL close-socket sock.fd
+  DISCARD closed
+
+  SET status 0
+END

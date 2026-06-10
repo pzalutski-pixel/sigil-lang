@@ -1,0 +1,69 @@
+BEHAVIOR main
+
+DESCRIPTION
+  Consumer: listens on port 9816, accepts one HTTP POST, prepends a timestamp
+  line "<ts> PROCESSED BY CONSUMER\n" to the request body, and writes the
+  result to output.txt.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c bind@697435f5 make-addr-bind-9816@00f67ec4 listen@95b7eb35 accept@e88849be receive@2ae7614b now@cee78134 format-time@83ebda2d string-to-bytes@a2e66e29 assemble-output@7367f6e6 open@7d62cd96 write@874767ff close@d4ba30e5 close-socket@d4ba30e5 println@a273ebb3
+  GUARANTEES writes_output
+
+HASH 013e6656
+
+COMPOSITION
+  SET status 0
+
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Bind to port 9816
+  addr_result = CALL make-addr-bind-9816
+  bind_result = CALL bind sock_fd addr_result.addr 16
+  DISCARD bind_result
+
+  # Listen with backlog 10
+  listen_result = CALL listen sock_fd 10
+  DISCARD listen_result
+
+  msg = "Consumer listening on port 9816"
+  CALL println msg
+
+  # Accept one connection
+  accept_result = CALL accept sock_fd
+  client_fd = accept_result.client_fd
+  DISCARD accept_result.client_addr
+  DISCARD accept_result.addr_len
+
+  # Receive the HTTP request
+  recv_result = CALL receive client_fd 65536
+
+  # Timestamp -> formatted string bytes
+  now_result = CALL now
+  fmt_result = CALL format-time now_result.timestamp
+
+  # Middle literal as bytes
+  middle = " PROCESSED BY CONSUMER\n"
+  mid_result = CALL string-to-bytes middle
+
+  # Assemble: ts + middle + body
+  out_result = CALL assemble-output fmt_result.formatted fmt_result.length mid_result.data mid_result.length recv_result.buffer recv_result.bytes_received
+
+  # Write to output.txt (flags 3 = write+create)
+  outpath = "output.txt"
+  open_result = CALL open outpath 3
+  write_result = CALL write open_result.fd out_result.out out_result.out_len
+  DISCARD write_result
+
+  close_result = CALL close open_result.fd
+  DISCARD close_result
+
+  # Close the client socket
+  cs_result = CALL close-socket client_fd
+  DISCARD cs_result
+
+  done_msg = "Consumer wrote output.txt"
+  CALL println done_msg
+END

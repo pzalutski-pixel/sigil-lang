@@ -1,0 +1,8 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  Reads input.txt and POSTs its contents to localhost:9817.
+
+ENTRY
+  CALL producer-main -> status
+END_EXECUTABLE

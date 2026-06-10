@@ -1,0 +1,18 @@
+BEHAVIOR t2-acc-init
+
+DESCRIPTION
+  Initializes a receive accumulator in a caller-owned buffer: the first 8 bytes
+  are a little-endian running-length cell (set to 0); the accumulated request
+  bytes live from offset 8 onward. The returned acc handle is a single stable
+  buffer the consumer reuses across all recv iterations, so no running state
+  has to be carried as a composition value.
+
+CONTRACT
+  OUTPUT acc bytes 65536
+  GUARANTEES writes_output
+
+HASH 3b21d161
+
+IMPLEMENTATION
+  STORE acc 0 8 0
+END

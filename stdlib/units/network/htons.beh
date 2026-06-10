@@ -1,0 +1,25 @@
+BEHAVIOR htons
+
+DESCRIPTION
+  Converts 16-bit value from host to network byte order.
+  Network byte order is big-endian.
+  Swaps bytes: 0xAABB becomes 0xBBAA.
+
+CONTRACT
+  INPUT value int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b15b0b3a
+
+IMPLEMENTATION
+  v = LOAD value 8
+  # Extract low byte and high byte
+  lo = AND v 255 8
+  hi = SHR v 8 8
+  hi = AND hi 255 8
+  # Swap: (lo << 8) | hi
+  swapped = SHL lo 8 8
+  swapped = OR swapped hi 8
+  STORE result swapped 8
+END

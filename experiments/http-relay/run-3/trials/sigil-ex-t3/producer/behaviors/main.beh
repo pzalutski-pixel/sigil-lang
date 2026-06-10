@@ -1,0 +1,46 @@
+BEHAVIOR main
+
+DESCRIPTION
+  Producer: reads input.txt and POSTs its contents to localhost:9816.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES open@7d62cd96 read@82ce10f8 close@d4ba30e5 string-to-bytes@a2e66e29 build-post@063c33b6 socket@0fec0e0c make-addr-connect-9816@00f67ec4 connect@697435f5 send@8c6f3cb7 close-socket@d4ba30e5 println@a273ebb3
+  GUARANTEES writes_output
+
+HASH e6a3fea2
+
+COMPOSITION
+  SET status 0
+
+  # Read input.txt (flags 0 = read)
+  inpath = "input.txt"
+  open_result = CALL open inpath 0
+  read_result = CALL read open_result.fd 65536
+  close_in = CALL close open_result.fd
+  DISCARD close_in
+
+  # Build HTTP POST request prefix (ends in CRLFCRLF)
+  prefix = "POST / HTTP/1.1\r\nHost: localhost:9816\r\nConnection: close\r\n\r\n"
+  pre_result = CALL string-to-bytes prefix
+
+  # Assemble request = prefix + body
+  req_result = CALL build-post pre_result.data pre_result.length read_result.buffer read_result.bytes_read
+
+  # Connect to 127.0.0.1:9816
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+  addr_result = CALL make-addr-connect-9816
+  conn_result = CALL connect sock_fd addr_result.addr 16
+  DISCARD conn_result
+
+  # Send the request
+  send_result = CALL send sock_fd req_result.out req_result.out_len
+  DISCARD send_result
+
+  cs_result = CALL close-socket sock_fd
+  DISCARD cs_result
+
+  done_msg = "Producer sent POST to localhost:9816"
+  CALL println done_msg
+END

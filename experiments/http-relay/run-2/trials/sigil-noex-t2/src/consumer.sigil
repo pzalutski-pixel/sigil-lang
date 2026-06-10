@@ -1,0 +1,22 @@
+EXECUTABLE consumer
+DESCRIPTION
+  Listens on port 9815 for an HTTP POST, prepends a timestamped
+  "PROCESSED BY CONSUMER" line to the body, writes output.txt.
+ENTRY
+  sock = CALL socket 2 1
+  a = CALL make-addr
+  bnd = CALL bind sock.fd a.addr a.addr_len
+  lsn = CALL listen sock.fd 1
+  ac = CALL accept sock.fd
+  rc = CALL receive ac.client_fd 65536
+  eb = CALL extract-body rc.buffer rc.bytes_received
+  t = CALL now
+  ft = CALL format-time t.timestamp
+  bo = CALL build-output ft.formatted ft.length eb.body eb.body_len
+  pf = CALL out-path
+  of = CALL open pf.path 3
+  w = CALL write of.fd bo.result bo.result_len
+  cl = CALL close of.fd
+  cs = CALL close-socket ac.client_fd
+  cs2 = CALL close-socket sock.fd
+END_EXECUTABLE

@@ -1,0 +1,19 @@
+BEHAVIOR sub-int
+
+DESCRIPTION
+  Subtracts two integers (a - b).
+
+CONTRACT
+  INPUT a int 8
+  INPUT b int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 506d7b8d
+
+IMPLEMENTATION
+  v1 = LOAD a 8
+  v2 = LOAD b 8
+  diff = ISUB v1 v2 8
+  STORE result diff 8
+END

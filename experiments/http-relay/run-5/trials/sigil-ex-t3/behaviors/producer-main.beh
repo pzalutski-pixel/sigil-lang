@@ -1,0 +1,45 @@
+BEHAVIOR producer-main
+
+DESCRIPTION
+  HTTP file relay producer. Reads input.txt, wraps its contents as the body of
+  an HTTP POST request, connects to localhost:9823, and sends the request.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES read-file-all@bf59f1e1 build-request@44dce179 socket@0fec0e0c make-sockaddr@a9866fc0 connect@697435f5 send@8c6f3cb7 close-socket@d4ba30e5 println@a273ebb3
+  GUARANTEES writes_output
+
+HASH fa3931ce
+
+COMPOSITION
+  msg = "Producer sending input.txt to localhost:9823"
+  CALL println msg
+
+  # Read input.txt
+  path = "input.txt"
+  rd = CALL read-file-all path
+
+  # Build HTTP POST request with the file contents as the body
+  req = CALL build-request rd.data rd.length
+
+  # AF_INET=2, SOCK_STREAM=1
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Connect to 127.0.0.1 (octets packed: 127 | (1<<24) = 16777343) port 9823
+  addr_result = CALL make-sockaddr 9823 16777343
+  conn_result = CALL connect sock_fd addr_result.addr addr_result.addr_len
+  DISCARD conn_result
+
+  # Send the request
+  send_result = CALL send sock_fd req.request req.req_len
+  DISCARD send_result
+
+  close_result = CALL close-socket sock_fd
+  DISCARD close_result
+
+  done_msg = "Producer sent request"
+  CALL println done_msg
+
+  SET status 0
+END

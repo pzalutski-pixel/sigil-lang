@@ -1,0 +1,10 @@
+PROJECT file-copy
+VERSION 1.0.0
+
+DESCRIPTION
+  Copies contents of one file to another.
+  Demonstrates file I/O and error handling patterns.
+
+ENTRY main behaviors/main.beh
+
+END

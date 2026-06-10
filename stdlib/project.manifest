@@ -1,0 +1,10 @@
+PROJECT stdlib
+VERSION 0.1.0
+
+DESCRIPTION
+  Standard library for AI-native language.
+  Provides core behaviors for string manipulation, file I/O,
+  networking, and console operations. All behaviors are leaf
+  implementations using primitives and syscalls.
+
+END

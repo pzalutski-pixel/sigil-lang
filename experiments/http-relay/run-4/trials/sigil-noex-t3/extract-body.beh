@@ -1,0 +1,28 @@
+BEHAVIOR extract-body
+
+DESCRIPTION
+  Finds the CR LF CR LF header/body separator in an HTTP request and copies the
+  body that follows into body, with its length. Uses find to locate the
+  separator (at index), then copies recv_len - (index + 4) bytes starting just
+  after it. Assumes a well-formed request whose separator is present within
+  recv_len bytes.
+
+CONTRACT
+  INPUT request bytes 65536
+  INPUT recv_len int 8
+  OUTPUT body bytes 65536
+  OUTPUT body_len int 8
+  REQUIRES crlf-needle@3190a1f5 find@7f2c5e1c add-int@506d7b8d sub-int@506d7b8d copy@05c62b49
+  GUARANTEES writes_output
+
+HASH 52d1aba6
+
+COMPOSITION
+  n = CALL crlf-needle
+  sep = CALL find request n.needle
+  start = CALL add-int sep.index 4
+  bl = CALL sub-int recv_len start.result
+  SET body_len bl.result
+  cb = CALL copy request start.result body 0 bl.result
+  DISCARD cb.bytes_copied
+END

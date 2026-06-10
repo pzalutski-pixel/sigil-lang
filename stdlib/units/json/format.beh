@@ -1,0 +1,82 @@
+BEHAVIOR format
+
+DESCRIPTION
+  Converts internal JSON representation back to JSON string.
+  Produces valid JSON output.
+
+CONTRACT
+  INPUT parsed bytes 4096
+  OUTPUT json bytes 8192
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH bd4311a3
+
+IMPLEMENTATION
+  out_pos = ALLOC 8 int
+  STORE out_pos 0 8
+
+  valid = LOAD parsed 1 0
+  root_type = LOAD parsed 1 1
+
+  is_valid = IEQ valid 1 1
+  BRANCH is_valid format_start format_error
+
+  LABEL format_error
+    STORE json 0 1 0
+    STORE length 0 8
+    JUMP done
+
+  LABEL format_start
+    is_obj = IEQ root_type 1 1
+    BRANCH is_obj format_obj check_arr
+
+  LABEL check_arr
+    is_arr = IEQ root_type 2 1
+    BRANCH is_arr format_arr check_str
+
+  LABEL check_str
+    is_str = IEQ root_type 3 1
+    BRANCH is_str format_str format_num
+
+  LABEL format_obj
+    pos = LOAD out_pos 8
+    STORE json 123 1 pos
+    pos = IADD pos 1 8
+    STORE json 125 1 pos
+    pos = IADD pos 1 8
+    STORE out_pos pos 8
+    JUMP finish
+
+  LABEL format_arr
+    pos = LOAD out_pos 8
+    STORE json 91 1 pos
+    pos = IADD pos 1 8
+    STORE json 93 1 pos
+    pos = IADD pos 1 8
+    STORE out_pos pos 8
+    JUMP finish
+
+  LABEL format_str
+    pos = LOAD out_pos 8
+    STORE json 34 1 pos
+    pos = IADD pos 1 8
+    STORE json 34 1 pos
+    pos = IADD pos 1 8
+    STORE out_pos pos 8
+    JUMP finish
+
+  LABEL format_num
+    pos = LOAD out_pos 8
+    STORE json 48 1 pos
+    pos = IADD pos 1 8
+    STORE out_pos pos 8
+
+  LABEL finish
+    pos = LOAD out_pos 8
+    STORE json 0 1 pos
+    STORE length pos 8
+
+  LABEL done
+    FREE out_pos
+END

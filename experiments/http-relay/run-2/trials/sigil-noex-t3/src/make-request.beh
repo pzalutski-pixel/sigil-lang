@@ -1,0 +1,113 @@
+BEHAVIOR make-request
+
+DESCRIPTION
+  Builds an HTTP POST request: fixed 75-byte header then the body.
+  Header is "POST / HTTP/1.1" with Host, Content-Length: 11,
+  Connection: close, terminated by CRLFCRLF.
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT blen int 8
+  OUTPUT req bytes 65536
+  OUTPUT reqlen int 8
+  GUARANTEES writes_output
+
+HASH a2c6ea8f
+
+IMPLEMENTATION
+  STORE req 80 1 0
+  STORE req 79 1 1
+  STORE req 83 1 2
+  STORE req 84 1 3
+  STORE req 32 1 4
+  STORE req 47 1 5
+  STORE req 32 1 6
+  STORE req 72 1 7
+  STORE req 84 1 8
+  STORE req 84 1 9
+  STORE req 80 1 10
+  STORE req 47 1 11
+  STORE req 49 1 12
+  STORE req 46 1 13
+  STORE req 49 1 14
+  STORE req 13 1 15
+  STORE req 10 1 16
+  STORE req 72 1 17
+  STORE req 111 1 18
+  STORE req 115 1 19
+  STORE req 116 1 20
+  STORE req 58 1 21
+  STORE req 32 1 22
+  STORE req 108 1 23
+  STORE req 111 1 24
+  STORE req 99 1 25
+  STORE req 97 1 26
+  STORE req 108 1 27
+  STORE req 104 1 28
+  STORE req 111 1 29
+  STORE req 115 1 30
+  STORE req 116 1 31
+  STORE req 13 1 32
+  STORE req 10 1 33
+  STORE req 67 1 34
+  STORE req 111 1 35
+  STORE req 110 1 36
+  STORE req 116 1 37
+  STORE req 101 1 38
+  STORE req 110 1 39
+  STORE req 116 1 40
+  STORE req 45 1 41
+  STORE req 76 1 42
+  STORE req 101 1 43
+  STORE req 110 1 44
+  STORE req 103 1 45
+  STORE req 116 1 46
+  STORE req 104 1 47
+  STORE req 58 1 48
+  STORE req 32 1 49
+  STORE req 49 1 50
+  STORE req 49 1 51
+  STORE req 13 1 52
+  STORE req 10 1 53
+  STORE req 67 1 54
+  STORE req 111 1 55
+  STORE req 110 1 56
+  STORE req 110 1 57
+  STORE req 101 1 58
+  STORE req 99 1 59
+  STORE req 116 1 60
+  STORE req 105 1 61
+  STORE req 111 1 62
+  STORE req 110 1 63
+  STORE req 58 1 64
+  STORE req 32 1 65
+  STORE req 99 1 66
+  STORE req 108 1 67
+  STORE req 111 1 68
+  STORE req 115 1 69
+  STORE req 101 1 70
+  STORE req 13 1 71
+  STORE req 10 1 72
+  STORE req 13 1 73
+  STORE req 10 1 74
+
+  bl = LOAD blen 8
+  j = ALLOC 8 int
+  STORE j 0 8
+  LABEL body_loop
+    jv = LOAD j 8
+    done = IGE jv bl 8
+    BRANCH done body_done body_body
+  LABEL body_body
+    bv = LOAD body 1 jv
+    dst = IADD jv 75 8
+    STORE req bv 1 dst
+    jv2 = IADD jv 1 8
+    STORE j jv2 8
+    JUMP body_loop
+  LABEL body_done
+
+  FREE j
+  total = IADD bl 75 8
+  STORE reqlen total 8
+END

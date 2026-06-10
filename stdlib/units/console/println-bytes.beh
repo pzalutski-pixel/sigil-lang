@@ -1,0 +1,16 @@
+BEHAVIOR println-bytes
+
+DESCRIPTION
+  Writes length raw bytes from a buffer to standard output, followed by newline.
+  For data that is a genuinely fixed `bytes` buffer carrying its length
+  separately (e.g. a value read out of a key/value store slot) rather than a
+  self-describing `string`. For strings, use println instead.
+  A sink: writes the bytes, returns nothing.
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT length int 8
+
+HASH 2674dba0
+
+NATIVE

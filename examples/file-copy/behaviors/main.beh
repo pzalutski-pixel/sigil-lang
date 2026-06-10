@@ -1,0 +1,38 @@
+BEHAVIOR main
+
+DESCRIPTION
+  Entry point for file-copy program.
+  Takes source and destination paths, copies file contents.
+
+CONTRACT
+  OUTPUT status int 8
+
+  REQUIRES copy-file@fabb7c66 handle-error@2e4feec0 is-negative@b15b0b3a
+
+  GUARANTEES writes_output
+
+HASH ed7f54f1
+
+COMPOSITION
+  # Hardcoded paths for testing
+  src = "test_source.txt"
+  dst = "test_dest.txt"
+  result = CALL copy-file src dst
+  # copy-file sets bytes_copied to negative values on error
+  # bytes_copied: 0 = success, -1 = src open error, -2 = dst open error, -3 = write error
+  error_check = CALL is-negative result.bytes_copied
+  BRANCH error_check.result error_path success_path
+
+  LABEL error_path
+    # Pass the negative error code to handle-error (prints the message);
+    # its 'printed' ack is deliberately not used.
+    err = CALL handle-error result.bytes_copied
+    DISCARD err
+    SET status -1
+    JUMP done
+
+  LABEL success_path
+    SET status 0
+
+  LABEL done
+END

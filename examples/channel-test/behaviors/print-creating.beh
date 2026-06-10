@@ -1,0 +1,11 @@
+BEHAVIOR print-creating
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Creating channel..."
+  CALL println msg
+END

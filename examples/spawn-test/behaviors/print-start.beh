@@ -1,0 +1,14 @@
+BEHAVIOR print-start
+
+DESCRIPTION
+  Prints spawn test start message.
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Starting spawn test..."
+  CALL println msg
+END

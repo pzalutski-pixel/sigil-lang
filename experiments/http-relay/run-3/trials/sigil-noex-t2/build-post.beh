@@ -1,0 +1,21 @@
+BEHAVIOR build-post
+DESCRIPTION
+  Builds a minimal HTTP/1.1 POST request: a fixed request line + CRLFCRLF,
+  followed by the body bytes. Returns the full request buffer and total length.
+  Composition: assembles via string-to-bytes + copy (cannot compute directly).
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_length int 8
+  OUTPUT request bytes 65536
+  OUTPUT length int 8
+  REQUIRES string-to-bytes@a2e66e29 copy@05c62b49 iadd@8b41ba23
+HASH 684d6c50
+COMPOSITION
+  hdr = CALL string-to-bytes "POST / HTTP/1.1\r\n\r\n"
+  hc = CALL copy hdr.data 0 request 0 hdr.length
+  DISCARD hc.bytes_copied
+  bc = CALL copy body 0 request hdr.length body_length
+  DISCARD bc.bytes_copied
+  total = CALL iadd hdr.length body_length
+  SET length total.sum
+END

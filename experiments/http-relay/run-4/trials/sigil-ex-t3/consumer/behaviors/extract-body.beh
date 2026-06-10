@@ -1,0 +1,87 @@
+BEHAVIOR extract-body
+
+DESCRIPTION
+  Extracts the HTTP body from a raw request buffer: scans the first req_len
+  bytes for the CRLF CRLF (0x0D 0x0A 0x0D 0x0A) header/body separator and copies
+  everything after it into body, with its byte count in body_len. If no separator
+  is found, body is empty (body_len 0).
+
+CONTRACT
+  INPUT request bytes 65536
+  INPUT req_len int 8
+  OUTPUT body bytes 65536
+  OUTPUT body_len int 8
+  GUARANTEES writes_output
+
+HASH 741a45ad
+
+IMPLEMENTATION
+  # default outputs so they are written on every path
+  STORE body_len 0 8
+  STORE body 0 1 0
+
+  rlen = LOAD req_len 8
+
+  # i = scan index, sep_at = index just past the CRLFCRLF, j = copy index
+  i = ALLOC 8 int
+  sep_at = ALLOC 8 int
+  j = ALLOC 8 int
+  STORE i 0 8
+  STORE sep_at 0 8
+  STORE j 0 8
+
+  # Need 4 bytes available: scan while i + 4 <= req_len
+  LABEL scan_start
+    iv = LOAD i 8
+    ip4 = IADD iv 4 8
+    in_range = ILE ip4 rlen 8
+    BRANCH in_range scan_body done
+
+  LABEL scan_body
+    b0 = LOAD request 1 iv
+    o1 = IADD iv 1 8
+    b1 = LOAD request 1 o1
+    o2 = IADD iv 2 8
+    b2 = LOAD request 1 o2
+    o3 = IADD iv 3 8
+    b3 = LOAD request 1 o3
+    is_cr0 = IEQ b0 13 1
+    is_lf1 = IEQ b1 10 1
+    is_cr2 = IEQ b2 13 1
+    is_lf2 = IEQ b3 10 1
+    m01 = AND is_cr0 is_lf1 1
+    m23 = AND is_cr2 is_lf2 1
+    match = AND m01 m23 1
+    BRANCH match found_sep scan_next
+
+  LABEL scan_next
+    nv = IADD iv 1 8
+    STORE i nv 8
+    JUMP scan_start
+
+  LABEL found_sep
+    start = IADD iv 4 8
+    STORE sep_at start 8
+    blen = ISUB rlen start 8
+    STORE body_len blen 8
+
+  LABEL copy_start
+    s = LOAD sep_at 8
+    bl = LOAD body_len 8
+    jv = LOAD j 8
+    more = ILT jv bl 8
+    BRANCH more copy_body done
+
+  LABEL copy_body
+    srcoff = IADD s jv 8
+    bv = LOAD request 1 srcoff
+    STORE body bv 1 jv
+    jn = IADD jv 1 8
+    STORE j jn 8
+    JUMP copy_start
+
+  LABEL done
+    FREE i
+    FREE sep_at
+    FREE j
+END

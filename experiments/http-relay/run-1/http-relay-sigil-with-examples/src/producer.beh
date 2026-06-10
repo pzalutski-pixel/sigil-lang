@@ -1,0 +1,62 @@
+BEHAVIOR producer
+
+DESCRIPTION
+  Reads input.txt and sends content via HTTP POST to localhost:9753.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c connect@697435f5 send@8c6f3cb7 close-socket@d4ba30e5 open@7d62cd96 read@82ce10f8 close@d4ba30e5 println@a273ebb3 make-connect-addr-9753@00f67ec4 build-http-post@757a97ba
+  GUARANTEES writes_output
+
+HASH 0e3bc118
+
+COMPOSITION
+  # Print starting message
+  msg1 = "Producer starting..."
+  CALL println msg1
+
+  # Open input.txt for reading (flags: read=0)
+  inpath = "input.txt"
+  open_result = CALL open inpath 0
+  in_fd = open_result.fd
+
+  # Read file content (up to 65536 bytes)
+  read_result = CALL read in_fd 65536
+  file_content = read_result.buffer
+  content_len = read_result.bytes_read
+
+  # Close input file
+  close_result = CALL close in_fd
+  DISCARD close_result
+
+  # Build HTTP POST request
+  http_result = CALL build-http-post file_content content_len
+  request = http_result.request
+  request_len = http_result.request_len
+
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Get server address for localhost:9753 (127.0.0.1)
+  addr_result = CALL make-connect-addr-9753
+  server_addr = addr_result.addr
+
+  # Connect to server
+  connect_result = CALL connect sock_fd server_addr 16
+  DISCARD connect_result
+
+  # Send HTTP request
+  send_result = CALL send sock_fd request request_len
+  DISCARD send_result
+
+  # Close socket
+  close_sock = CALL close-socket sock_fd
+  DISCARD close_sock
+
+  # Print done message
+  msg2 = "Request sent to consumer"
+  CALL println msg2
+
+  SET status 0
+END

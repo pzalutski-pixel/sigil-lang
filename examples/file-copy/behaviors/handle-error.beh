@@ -1,0 +1,22 @@
+BEHAVIOR handle-error
+
+DESCRIPTION
+  Prints error message to console based on error code.
+  Maps system error codes to human-readable messages.
+
+CONTRACT
+  INPUT error_code int 8
+  OUTPUT printed int 8
+
+  REQUIRES println@a273ebb3 error-messages-get@d183f477
+
+  GUARANTEES writes_output
+
+HASH 2e4feec0
+
+COMPOSITION
+  # Get error message for code (a self-describing string)
+  message = CALL error-messages-get error_code
+  CALL println message.text
+  SET printed 1
+END

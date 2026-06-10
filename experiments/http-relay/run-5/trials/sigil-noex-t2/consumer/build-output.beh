@@ -1,0 +1,152 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Assembles the consumer's output: a 19-byte timestamp, a space,
+  "PROCESSED BY CONSUMER", a newline (0x0A), then the request body. The request
+  is a full HTTP message in req (req_len bytes); the body is everything after
+  the first CRLFCRLF (\r\n\r\n). ts holds the 19-byte "YYYY-MM-DD HH:MM:SS"
+  timestamp. out receives the assembled bytes, out_len its byte count.
+
+CONTRACT
+  INPUT req bytes 65536
+  INPUT req_len int 8
+  INPUT ts bytes 32
+  OUTPUT out bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH 4d05b88d
+
+IMPLEMENTATION
+  rlen = LOAD req_len 8
+  # 1. Find body start: scan req for the 4-byte sequence 13 10 13 10.
+  bodystart = ALLOC 8 int
+  STORE bodystart 0 8        # default 0 if not found
+  found = ALLOC 8 int
+  STORE found 0 8
+
+  i = ALLOC 8 int
+  STORE i 0 8
+  # limit = req_len - 3
+  limit = ISUB rlen 3 8
+
+  LABEL scan-loop
+    iv = LOAD i 8
+    atend = IGE iv limit 8
+    BRANCH atend scan-done scan-check
+
+  LABEL scan-check
+    fv = LOAD found 8
+    already = INE fv 0 8
+    BRANCH already scan-done do-check
+
+  LABEL do-check
+    iv2 = LOAD i 8
+    c0 = LOAD req 1 iv2
+    o1 = IADD iv2 1 8
+    c1 = LOAD req 1 o1
+    o2 = IADD iv2 2 8
+    c2 = LOAD req 1 o2
+    o3 = IADD iv2 3 8
+    c3 = LOAD req 1 o3
+    m0 = IEQ c0 13 8
+    m1 = IEQ c1 10 8
+    m2 = IEQ c2 13 8
+    m3 = IEQ c3 10 8
+    a = AND m0 m1 8
+    b = AND m2 m3 8
+    match = AND a b 8
+    BRANCH match found-it next-scan
+
+  LABEL found-it
+    iv3 = LOAD i 8
+    bs = IADD iv3 4 8
+    STORE bodystart bs 8
+    STORE found 1 8
+    JUMP scan-done
+
+  LABEL next-scan
+    iv4 = LOAD i 8
+    iv5 = IADD iv4 1 8
+    STORE i iv5 8
+    JUMP scan-loop
+
+  LABEL scan-done
+  # 2. Write the timestamp (19 bytes from ts) into out at offset 0.
+  k = ALLOC 8 int
+  STORE k 0 8
+
+  LABEL ts-loop
+    kv = LOAD k 8
+    kdone = IGE kv 19 8
+    BRANCH kdone ts-done ts-copy
+
+  LABEL ts-copy
+    kv2 = LOAD k 8
+    tb = LOAD ts 1 kv2
+    STORE out tb 1 kv2
+    kv3 = IADD kv2 1 8
+    STORE k kv3 8
+    JUMP ts-loop
+
+  LABEL ts-done
+  # 3. Write " PROCESSED BY CONSUMER\n" starting at offset 19.
+  # space PROCESSED BY CONSUMER then \n. That's 1+21+1 = 23 bytes (offsets 19..41),
+  # so the newline lands at offset 41; body starts at offset 42.
+  STORE out 32 1 19     # space
+  STORE out 80 1 20     # P
+  STORE out 82 1 21     # R
+  STORE out 79 1 22     # O
+  STORE out 67 1 23     # C
+  STORE out 69 1 24     # E
+  STORE out 83 1 25     # S
+  STORE out 83 1 26     # S
+  STORE out 69 1 27     # E
+  STORE out 68 1 28     # D
+  STORE out 32 1 29     # space
+  STORE out 66 1 30     # B
+  STORE out 89 1 31     # Y
+  STORE out 32 1 32     # space
+  STORE out 67 1 33     # C
+  STORE out 79 1 34     # O
+  STORE out 78 1 35     # N
+  STORE out 83 1 36     # S
+  STORE out 85 1 37     # U
+  STORE out 77 1 38     # M
+  STORE out 69 1 39     # E
+  STORE out 82 1 40     # R
+  STORE out 10 1 41     # \n
+
+  # 4. Copy body: from req[bodystart .. req_len) into out starting at offset 42.
+  bsv = LOAD bodystart 8
+  outpos = ALLOC 8 int
+  STORE outpos 42 8
+  j = ALLOC 8 int
+  STORE j bsv 8
+
+  LABEL body-loop
+    jv = LOAD j 8
+    bdone = IGE jv rlen 8
+    BRANCH bdone body-done body-copy
+
+  LABEL body-copy
+    jv2 = LOAD j 8
+    bb = LOAD req 1 jv2
+    op = LOAD outpos 8
+    STORE out bb 1 op
+    op2 = IADD op 1 8
+    STORE outpos op2 8
+    jv3 = IADD jv2 1 8
+    STORE j jv3 8
+    JUMP body-loop
+
+  LABEL body-done
+  finalpos = LOAD outpos 8
+  STORE out_len finalpos 8
+  FREE bodystart
+  FREE found
+  FREE i
+  FREE k
+  FREE outpos
+  FREE j
+END

@@ -1,0 +1,32 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Listens on port 9811 for an HTTP POST, prepends a timestamp and the line
+  PROCESSED BY CONSUMER to the body, and writes the result to output.txt.
+
+ENTRY
+  s = CALL socket 2 1
+  a = CALL make-sockaddr 9811 0
+  bnd = CALL bind s.fd a.addr a.addr_len
+  lis = CALL listen s.fd 1
+  ac = CALL accept s.fd
+  rc = CALL receive ac.client_fd 65536
+  eb = CALL extract-body rc.buffer rc.bytes_received
+  t = CALL now
+  ft = CALL format-time t.timestamp
+  o = CALL build-output ft.formatted ft.length eb.body eb.blen
+  of = CALL open "output.txt" 3
+  w = CALL write of.fd o.content o.clen
+  cf = CALL close of.fd
+  cc = CALL close-socket ac.client_fd
+  cs = CALL close-socket s.fd
+  DISCARD bnd.status
+  DISCARD lis.status
+  DISCARD ac.client_addr
+  DISCARD ac.addr_len
+  DISCARD rc.bytes_received
+  DISCARD w.bytes_written
+  DISCARD cf.status
+  DISCARD cc.status
+  DISCARD cs.status
+END_EXECUTABLE

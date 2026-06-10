@@ -1,0 +1,17 @@
+BEHAVIOR socket
+
+DESCRIPTION
+  Creates a network socket.
+  Domain: AF_INET (2), AF_INET6 (10), AF_UNIX (1).
+  Type: SOCK_STREAM (1), SOCK_DGRAM (2).
+  Returns socket file descriptor, negative on error.
+
+CONTRACT
+  INPUT domain int 8
+  INPUT sock_type int 8
+  OUTPUT fd int 8
+  GUARANTEES writes_output
+
+HASH 0fec0e0c
+
+NATIVE

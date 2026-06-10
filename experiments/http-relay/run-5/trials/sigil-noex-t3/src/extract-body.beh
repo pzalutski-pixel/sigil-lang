@@ -1,0 +1,80 @@
+BEHAVIOR extract-body
+
+DESCRIPTION
+  Extracts the HTTP body from a raw request: scans the first req_len bytes for
+  the "\r\n\r\n" header terminator and copies everything after it into body,
+  with its length in body_len. If no terminator is found, body is empty
+  (body_len 0).
+
+CONTRACT
+  INPUT request bytes 65536
+  INPUT req_len int 8
+  OUTPUT body bytes 65536
+  OUTPUT body_len int 8
+  GUARANTEES writes_output
+
+HASH 741a45ad
+
+IMPLEMENTATION
+  rlen = LOAD req_len 8
+  zero = ISUB rlen rlen 8
+
+  # default outputs (covers the no-terminator and zero-length paths)
+  STORE body_len zero 8
+  STORE body zero 1 0
+
+  # bstart = index just past "\r\n\r\n", or -1 if not found
+  one = IADD zero 1 8
+  bstart = ISUB zero one 8
+
+  # scan i from 0 .. rlen-4 inclusive
+  limit = ISUB rlen 3 8
+  i = IADD zero 0 8
+  LABEL scan
+    atend = IGE i limit 8
+    BRANCH atend scan_done scan_body
+  LABEL scan_body
+    c0 = LOAD request 1 i
+    i1 = IADD i 1 8
+    c1 = LOAD request 1 i1
+    i2 = IADD i 2 8
+    c2 = LOAD request 1 i2
+    i3 = IADD i 3 8
+    c3 = LOAD request 1 i3
+    m0 = IEQ c0 13 8
+    m1 = IEQ c1 10 8
+    m2 = IEQ c2 13 8
+    m3 = IEQ c3 10 8
+    a = AND m0 m1 8
+    b = AND m2 m3 8
+    hit = AND a b 8
+    BRANCH hit found scan_next
+  LABEL scan_next
+    i = IADD i 1 8
+    JUMP scan
+  LABEL found
+    bstart = IADD i 4 8
+  LABEL scan_done
+
+  # if not found, bstart < 0: leave body empty
+  neg = ILT bstart zero 8
+  BRANCH neg no_body do_copy
+  LABEL do_copy
+    blen = ISUB rlen bstart 8
+    j = IADD zero 0 8
+    LABEL copy_loop
+      cdone = IGE j blen 8
+      BRANCH cdone copy_done copy_one
+    LABEL copy_one
+      src = IADD bstart j 8
+      v = LOAD request 1 src
+      STORE body v 1 j
+      j = IADD j 1 8
+      JUMP copy_loop
+    LABEL copy_done
+    STORE body_len blen 8
+    JUMP fin
+  LABEL no_body
+    JUMP fin
+  LABEL fin
+END

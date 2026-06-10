@@ -1,0 +1,19 @@
+BEHAVIOR array-init
+
+DESCRIPTION
+  Initializes an int dynamic array in caller-owned memory (per spec 3.3 the
+  caller owns the buffer, this callee initializes it). Layout: [len:8][cap:8]
+  then cap 8-byte slots. Sets len=0 and records cap. The buffer must be at
+  least array-buf-size(cap) bytes.
+
+CONTRACT
+  INPUT arr bytes 65536
+  INPUT cap int 8
+
+HASH 56eeb340
+
+IMPLEMENTATION
+  cv = LOAD cap 8
+  STORE arr 0 8 0
+  STORE arr cv 8 8
+END

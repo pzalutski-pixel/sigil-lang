@@ -1,0 +1,22 @@
+BEHAVIOR abs
+
+DESCRIPTION
+  Absolute value of a signed 64-bit integer.
+  Branchless: mask = v >> 63 (arithmetic shift; all-ones if negative, zero
+  otherwise), then result = (v XOR mask) - mask. For v >= 0 mask is 0 so result
+  is v; for v < 0 this is the two's-complement negation -v.
+
+CONTRACT
+  INPUT value int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b15b0b3a
+
+IMPLEMENTATION
+  v = LOAD value 8
+  mask = SAR v 63 8
+  t = XOR v mask 8
+  r = ISUB t mask 8
+  STORE result r 8
+END

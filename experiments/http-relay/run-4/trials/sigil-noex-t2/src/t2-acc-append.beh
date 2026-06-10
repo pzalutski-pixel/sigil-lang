@@ -1,0 +1,37 @@
+BEHAVIOR t2-acc-append
+
+DESCRIPTION
+  Appends chunk_len bytes of chunk to the accumulator acc (see t2-acc-init):
+  reads the running length from acc[0..8), copies the chunk to acc[8+len ..),
+  and writes len+chunk_len back into the length cell. No output: the state
+  lives in the acc buffer so the consumer's recv loop carries nothing.
+
+CONTRACT
+  INPUT acc bytes 65536
+  INPUT chunk bytes 65536
+  INPUT chunk_len int 8
+
+HASH 76f23d7a
+
+IMPLEMENTATION
+  len = LOAD acc 8 0
+  clv = LOAD chunk_len 8
+  j = ALLOC 8 int
+  STORE j 0 8
+  LABEL cp
+    jv = LOAD j 8
+    cont = ILT jv clv 8
+    BRANCH cont body fin
+  LABEL body
+    cb = LOAD chunk 1 jv
+    base = IADD len jv 8
+    dst = IADD base 8 8
+    STORE acc cb 1 dst
+    jn = IADD jv 1 8
+    STORE j jn 8
+    JUMP cp
+  LABEL fin
+    FREE j
+    newlen = IADD len clv 8
+    STORE acc newlen 8 0
+END

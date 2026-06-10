@@ -1,0 +1,15 @@
+BEHAVIOR close-socket
+
+DESCRIPTION
+  Closes a network socket.
+  Returns 0 on success, negative on error.
+  Socket should not be used after close.
+
+CONTRACT
+  INPUT fd int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH d4ba30e5
+
+NATIVE

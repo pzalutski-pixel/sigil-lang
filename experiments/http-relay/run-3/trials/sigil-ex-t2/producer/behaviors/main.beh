@@ -1,0 +1,43 @@
+BEHAVIOR main
+
+DESCRIPTION
+  HTTP file-relay producer. Reads input.txt and POSTs its contents to
+  localhost:9815.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES open@7d62cd96 read@82ce10f8 close@d4ba30e5 build-request@2d0207a2 socket@0fec0e0c connect@697435f5 make-addr-local-9815@00f67ec4 send@8c6f3cb7 close-socket@d4ba30e5 println@a273ebb3
+  GUARANTEES writes_output
+
+HASH 295ceaae
+
+COMPOSITION
+  # Read input.txt (flags = 0 = read)
+  in_path = "input.txt"
+  open_result = CALL open in_path 0
+  read_result = CALL read open_result.fd 65536
+  fc = CALL close open_result.fd
+  DISCARD fc
+
+  # Build the HTTP POST request
+  req = CALL build-request read_result.buffer read_result.bytes_read
+
+  # Connect to localhost:9815
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+  addr_result = CALL make-addr-local-9815
+  conn_result = CALL connect sock_fd addr_result.addr 16
+  DISCARD conn_result
+
+  # Send the request
+  send_result = CALL send sock_fd req.request req.request_length
+  DISCARD send_result
+
+  msg = "Producer sent request to localhost:9815"
+  CALL println msg
+
+  cs = CALL close-socket sock_fd
+  DISCARD cs
+
+  SET status 0
+END

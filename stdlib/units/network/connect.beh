@@ -1,0 +1,18 @@
+BEHAVIOR connect
+
+DESCRIPTION
+  Client-side: establishes TCP connection to a server.
+  Call socket first, then connect with server address.
+  Address format: sockaddr_in (same as bind).
+  Blocks until connected or error. Returns 0 on success.
+
+CONTRACT
+  INPUT fd int 8
+  INPUT addr bytes 128
+  INPUT addr_len int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH 697435f5
+
+NATIVE

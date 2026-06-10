@@ -1,0 +1,14 @@
+BEHAVIOR print-done
+
+DESCRIPTION
+  Prints worker completed message.
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Worker completed!"
+  CALL println msg
+END

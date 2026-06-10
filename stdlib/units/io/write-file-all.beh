@@ -1,0 +1,24 @@
+BEHAVIOR write-file-all
+
+DESCRIPTION
+  Writes length bytes of data to path, creating/truncating it (flags 3 =
+  write|create). Returns the number of bytes written. Convenience wiring over
+  open/write/close.
+
+CONTRACT
+  INPUT path string
+  INPUT data bytes 65536
+  INPUT length int 8
+  OUTPUT bytes_written int 8
+  REQUIRES open@7d62cd96 write@874767ff close@d4ba30e5
+  GUARANTEES writes_output
+
+HASH b17d9aa8
+
+COMPOSITION
+  outf = CALL open path 3
+  wr = CALL write outf.fd data length
+  cl = CALL close outf.fd
+  DISCARD cl.status
+  SET bytes_written wr.bytes_written
+END

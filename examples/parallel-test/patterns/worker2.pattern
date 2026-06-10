@@ -1,0 +1,11 @@
+PATTERN worker2
+
+MEMORY
+  result int 8
+
+ON_CREATE
+  msg = "Worker 2 executing!"
+  CALL println msg
+  STORE result 2 8
+
+END_PATTERN

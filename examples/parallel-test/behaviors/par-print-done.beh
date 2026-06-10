@@ -1,0 +1,11 @@
+BEHAVIOR par-print-done
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "All workers done!"
+  CALL println msg
+END

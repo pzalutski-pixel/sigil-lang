@@ -1,0 +1,81 @@
+name: CI
+
+# Cross-platform build + test. The compiler (Rust + LLVM 18) and the C runtime
+# are written to be portable; this verifies that on Linux and macOS runners,
+# which we cannot exercise on the Windows dev machine. Windows is verified
+# locally and can be added to the matrix once the POSIX runs are green.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM 18 (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-18 llvm-18-dev clang-18 lld-18
+          echo "LLVM_SYS_180_PREFIX=$(llvm-config-18 --prefix)" >> "$GITHUB_ENV"
+          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
+
+      - name: Install LLVM 18 (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm@18
+          PREFIX="$(brew --prefix llvm@18)"
+          echo "LLVM_SYS_180_PREFIX=$PREFIX" >> "$GITHUB_ENV"
+          echo "$PREFIX/bin" >> "$GITHUB_PATH"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build + test compiler
+        run: cargo test --release --manifest-path compiler/Cargo.toml
+
+      - name: Build C runtime
+        run: bash runtime/build.sh
+
+      - name: Build stdlib
+        run: |
+          ./compiler/target/release/sigil-compiler --lib stdlib/units \
+            -o lib/release/sigil-stdlib.lib
+
+      - name: Build and run examples (byte-exact where applicable)
+        run: |
+          set -e
+          SC=./compiler/target/release/sigil-compiler
+          LINK="--link lib/release/sigil-stdlib.lib --native-lib lib/release/sigil_runtime.lib"
+
+          # hello-world: prints a greeting.
+          $SC examples/hello-world/main.sigil $LINK -o hw
+          test "$(./hw)" = "Hello, World!"
+
+          # file-copy: copies test_source.txt -> test_dest.txt byte-exact.
+          printf 'Sigil CI cross-platform test\nline two\n' > test_source.txt
+          rm -f test_dest.txt
+          $SC examples/file-copy/main.sigil $LINK -o fc
+          ./fc
+          cmp test_source.txt test_dest.txt
+
+          # kv-store: prints "Sigil" then "Deleted correctly".
+          $SC examples/kv-store/main.sigil $LINK -o kv
+          ./kv | grep -q '^Sigil$'
+          ./kv | grep -q '^Deleted correctly$'
+
+          # concurrency demos: must complete (exit 0). `timeout` is GNU
+          # coreutils; macOS runners ship it as `gtimeout`.
+          TIMEOUT="$(command -v timeout || command -v gtimeout)"
+          for ex in spawn-test parallel-test channel-test producer-consumer; do
+            $SC examples/$ex/main.sigil $LINK -o "$ex.out"
+            "$TIMEOUT" 30 "./$ex.out" >/dev/null
+          done
+
+          echo "All examples built and ran on ${{ matrix.os }}"

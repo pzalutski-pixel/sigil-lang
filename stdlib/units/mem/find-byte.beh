@@ -1,0 +1,44 @@
+BEHAVIOR find-byte
+
+DESCRIPTION
+  Index of the first occurrence of a byte value in the first len bytes of
+  buffer, or -1 if absent (memchr semantics). The byte is matched unsigned.
+
+CONTRACT
+  INPUT buffer bytes 65536
+  INPUT value int 8
+  INPUT len int 8
+  OUTPUT index int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH bbe1c049
+
+IMPLEMENTATION
+  target = LOAD value 8
+  tu = AND target 255 8
+  lenv = LOAD len 8
+  i = 0
+
+  LABEL loop
+    atend = IGE i lenv 8
+    BRANCH atend notfound check
+
+  LABEL check
+    bb = LOAD buffer 1 i
+    bu = AND bb 255 8
+    match = IEQ bu tu 8
+    BRANCH match found nextb
+
+  LABEL found
+    STORE index i 8
+    JUMP done
+
+  LABEL nextb
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL notfound
+    STORE index -1 8
+
+  LABEL done
+END

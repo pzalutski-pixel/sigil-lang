@@ -1,0 +1,11 @@
+PATTERN worker
+
+MEMORY
+  result int 8
+
+ON_CREATE
+  msg = "Worker pattern executed!"
+  CALL println msg
+  STORE result 42 8
+
+END_PATTERN

@@ -1,0 +1,25 @@
+EXECUTABLE producer-consumer
+
+DESCRIPTION
+  Entry point for producer/consumer demo.
+  Creates channel, spawns producer and consumer patterns.
+
+USES producer.pattern
+USES consumer.pattern
+
+ENTRY
+  CALL pc-print-start
+  ch = CHANNEL int 10
+  CALL pc-print-spawn-prod
+  prod = SPAWN producer ch 0 10
+  CALL pc-print-spawn-cons
+  cons = SPAWN consumer ch 10
+  CALL pc-print-wait-prod
+  prod_result = WAIT prod
+  CALL pc-print-closing
+  CHANNEL_CLOSE ch
+  CALL pc-print-wait-cons
+  cons_result = WAIT cons
+  CALL pc-print-complete
+  SET status 0
+END_EXECUTABLE

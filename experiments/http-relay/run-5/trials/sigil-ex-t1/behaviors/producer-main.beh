@@ -1,0 +1,38 @@
+BEHAVIOR producer-main
+
+DESCRIPTION
+  Reads input.txt and sends its contents as the body of an HTTP POST to
+  localhost:9821.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES read-file-all@bf59f1e1 int-to-string@8dcdacc1 build-request@f30b14ab socket@0fec0e0c connect-9821@87a0517d send@8c6f3cb7 close-socket@d4ba30e5 println@a273ebb3
+  GUARANTEES writes_output
+
+HASH dee7ecd3
+
+COMPOSITION
+  path = "input.txt"
+  rd = CALL read-file-all path
+
+  clen = CALL int-to-string rd.length
+
+  req = CALL build-request rd.data rd.length clen.str clen.length
+
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  conn = CALL connect-9821 sock_fd
+  DISCARD conn
+
+  send_result = CALL send sock_fd req.out req.out_len
+  DISCARD send_result
+
+  msg = "Producer sent input.txt to localhost:9821"
+  CALL println msg
+
+  close_result = CALL close-socket sock_fd
+  DISCARD close_result
+
+  SET status 0
+END

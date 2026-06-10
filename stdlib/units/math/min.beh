@@ -1,0 +1,28 @@
+BEHAVIOR min
+
+DESCRIPTION
+  Smaller of two signed 64-bit integers.
+
+CONTRACT
+  INPUT a int 8
+  INPUT b int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 506d7b8d
+
+IMPLEMENTATION
+  av = LOAD a 8
+  bv = LOAD b 8
+  a_smaller = ILT av bv 8
+  BRANCH a_smaller take_a take_b
+
+  LABEL take_a
+    STORE result av 8
+    JUMP end
+
+  LABEL take_b
+    STORE result bv 8
+
+  LABEL end
+END

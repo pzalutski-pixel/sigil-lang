@@ -1,0 +1,26 @@
+BEHAVIOR build-post
+
+DESCRIPTION
+  Builds an HTTP/1.1 POST request into req: the fixed 56-byte header from
+  post-header, then the first body_len bytes of body copied in after it.
+  req_len is header_len + body_len.
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT req bytes 65536
+  OUTPUT req_len int 8
+  REQUIRES post-header@cd8db959 copy@05c62b49 add-int@506d7b8d
+  GUARANTEES writes_output
+
+HASH 1ed7a538
+
+COMPOSITION
+  h = CALL post-header
+  ch = CALL copy h.hdr 0 req 0 56
+  DISCARD ch.bytes_copied
+  cp = CALL copy body 0 req 56 body_len
+  DISCARD cp.bytes_copied
+  rl = CALL add-int 56 body_len
+  SET req_len rl.result
+END

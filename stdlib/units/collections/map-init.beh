@@ -1,0 +1,29 @@
+BEHAVIOR map-init
+
+DESCRIPTION
+  Initializes an open-addressing (linear-probe) hash map in caller-owned
+  memory: stores cap at offset 0 and clears every slot's used flag. Keys up to
+  64 bytes, values up to 256 bytes; cap slots of 337 bytes each follow the
+  header. Buffer must be at least map-buf-size(cap) bytes.
+
+CONTRACT
+  INPUT map bytes 262144
+  INPUT cap int 8
+
+HASH 54f37178
+
+IMPLEMENTATION
+  cv = LOAD cap 8
+  STORE map cv 8 0
+  i = 0
+  LABEL loop
+    d = IGE i cv 8
+    BRANCH d done body
+  LABEL body
+    e = IMUL i 337 8
+    off = IADD e 8 8
+    STORE map 0 1 off
+    i = IADD i 1 8
+    JUMP loop
+  LABEL done
+END

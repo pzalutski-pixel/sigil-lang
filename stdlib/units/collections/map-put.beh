@@ -1,0 +1,122 @@
+BEHAVIOR map-put
+
+DESCRIPTION
+  Inserts or overwrites key->val in an open-addressing hash map. Hashes the
+  first klen bytes of key with FNV-1a, then linear-probes from hash%cap: an
+  empty slot is filled; a slot whose key equals the input key has its value
+  replaced. status=1 on success, 0 if the table was full. klen<=64, vlen<=256.
+
+CONTRACT
+  INPUT map bytes 262144
+  INPUT key bytes 65536
+  INPUT klen int 8
+  INPUT val bytes 65536
+  INPUT vlen int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH e33dbb28
+
+IMPLEMENTATION
+  cap = LOAD map 8 0
+  kl = LOAD klen 8
+  vl = LOAD vlen 8
+  h = -3750763034362895725
+  hi = 0
+  LABEL hloop
+    hd = IGE hi kl 8
+    BRANCH hd hfin hbody
+  LABEL hbody
+    b = LOAD key 1 hi
+    bu = AND b 255 8
+    h = XOR h bu 8
+    h = IMUL h 1099511628211 8
+    hi = IADD hi 1 8
+    JUMP hloop
+  LABEL hfin
+  hp = AND h 9223372036854775807 8
+  slot = IMOD hp cap 8
+  tries = 0
+  LABEL ploop
+    pdone = IGE tries cap 8
+    BRANCH pdone pfull pbody
+  LABEL pbody
+    e = IMUL slot 337 8
+    soff = IADD e 8 8
+    used = LOAD map 1 soff
+    used = AND used 255 8
+    isempty = IEQ used 0 8
+    BRANCH isempty insert checkkey
+  LABEL checkkey
+    skoff = IADD soff 1 8
+    sklen = LOAD map 8 skoff
+    samelen = IEQ sklen kl 8
+    BRANCH samelen cmpkey nextslot
+  LABEL cmpkey
+    kbase = IADD soff 9 8
+    j = 0
+    match = 1
+    LABEL cloop
+      cd = IGE j kl 8
+      BRANCH cd cdone cbody
+    LABEL cbody
+      ka = LOAD key 1 j
+      ka = AND ka 255 8
+      kboff = IADD kbase j 8
+      kb = LOAD map 1 kboff
+      kb = AND kb 255 8
+      neq = INE ka kb 8
+      BRANCH neq setnomatch cnext
+    LABEL setnomatch
+      match = 0
+      JUMP cdone
+    LABEL cnext
+      j = IADD j 1 8
+      JUMP cloop
+    LABEL cdone
+    BRANCH match insert nextslot
+  LABEL nextslot
+    slot = IADD slot 1 8
+    slot = IMOD slot cap 8
+    tries = IADD tries 1 8
+    JUMP ploop
+  LABEL insert
+    e2 = IMUL slot 337 8
+    soff2 = IADD e2 8 8
+    STORE map 1 1 soff2
+    klo = IADD soff2 1 8
+    STORE map kl 8 klo
+    kdst = IADD soff2 9 8
+    ci = 0
+    LABEL kcopy
+      kcd = IGE ci kl 8
+      BRANCH kcd kcdone kcbody
+    LABEL kcbody
+      kv = LOAD key 1 ci
+      kv = AND kv 255 8
+      kdoff = IADD kdst ci 8
+      STORE map kv 1 kdoff
+      ci = IADD ci 1 8
+      JUMP kcopy
+    LABEL kcdone
+    vlo = IADD soff2 73 8
+    STORE map vl 8 vlo
+    vdst = IADD soff2 81 8
+    vi = 0
+    LABEL vcopy
+      vcd = IGE vi vl 8
+      BRANCH vcd vcdone vcbody
+    LABEL vcbody
+      vv = LOAD val 1 vi
+      vv = AND vv 255 8
+      vdoff = IADD vdst vi 8
+      STORE map vv 1 vdoff
+      vi = IADD vi 1 8
+      JUMP vcopy
+    LABEL vcdone
+    STORE status 1 8
+    JUMP putend
+  LABEL pfull
+    STORE status 0 8
+  LABEL putend
+END

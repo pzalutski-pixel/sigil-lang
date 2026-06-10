@@ -1,0 +1,16 @@
+BEHAVIOR open
+
+DESCRIPTION
+  Opens a file and returns a file descriptor.
+  Flags control access mode: read (0), write (1), create (2), append (4).
+  Flags can be combined. Returns negative on error.
+
+CONTRACT
+  INPUT path string
+  INPUT flags int 8
+  OUTPUT fd int 8
+  GUARANTEES writes_output
+
+HASH 7d62cd96
+
+NATIVE

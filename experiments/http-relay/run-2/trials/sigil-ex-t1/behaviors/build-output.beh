@@ -1,0 +1,166 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Builds the consumer output buffer.
+  Layout: "<timestamp> PROCESSED BY CONSUMER\n" followed by the request body.
+  timestamp is 19 bytes "YYYY-MM-DD HH:MM:SS".
+  The request is the raw HTTP request; body starts after "\r\n\r\n".
+
+CONTRACT
+  INPUT timestamp bytes 32
+  INPUT request bytes 65536
+  INPUT req_length int 8
+  OUTPUT result bytes 65536
+  OUTPUT result_length int 8
+  GUARANTEES writes_output
+
+HASH ea066e13
+
+IMPLEMENTATION
+  out = ALLOC 8 int
+  STORE out 0 8
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  # Copy 19-byte timestamp into result
+  LABEL copy_ts
+    idx = LOAD i 8
+    done_ts = IGE idx 19 8
+    BRANCH done_ts end_ts copy_ts_byte
+
+  LABEL copy_ts_byte
+    idx = LOAD i 8
+    byte = LOAD timestamp 1 idx
+    op = LOAD out 8
+    STORE result byte 1 op
+    np = IADD op 1 8
+    STORE out np 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_ts
+
+  LABEL end_ts
+    # Append " PROCESSED BY CONSUMER\n"
+    # space P R O C E S S E D   B Y   C O N S U M E R \n
+    op = LOAD out 8
+    STORE result 32 1 op
+    op = IADD op 1 8
+    STORE result 80 1 op
+    op = IADD op 1 8
+    STORE result 82 1 op
+    op = IADD op 1 8
+    STORE result 79 1 op
+    op = IADD op 1 8
+    STORE result 67 1 op
+    op = IADD op 1 8
+    STORE result 69 1 op
+    op = IADD op 1 8
+    STORE result 83 1 op
+    op = IADD op 1 8
+    STORE result 83 1 op
+    op = IADD op 1 8
+    STORE result 69 1 op
+    op = IADD op 1 8
+    STORE result 68 1 op
+    op = IADD op 1 8
+    STORE result 32 1 op
+    op = IADD op 1 8
+    STORE result 66 1 op
+    op = IADD op 1 8
+    STORE result 89 1 op
+    op = IADD op 1 8
+    STORE result 32 1 op
+    op = IADD op 1 8
+    STORE result 67 1 op
+    op = IADD op 1 8
+    STORE result 79 1 op
+    op = IADD op 1 8
+    STORE result 78 1 op
+    op = IADD op 1 8
+    STORE result 83 1 op
+    op = IADD op 1 8
+    STORE result 85 1 op
+    op = IADD op 1 8
+    STORE result 77 1 op
+    op = IADD op 1 8
+    STORE result 69 1 op
+    op = IADD op 1 8
+    STORE result 82 1 op
+    op = IADD op 1 8
+    STORE result 10 1 op
+    op = IADD op 1 8
+    STORE out op 8
+
+  # Find body start: scan request for CR LF CR LF, body begins after.
+  bpos = ALLOC 8 int
+  STORE bpos 0 8
+  scan = ALLOC 8 int
+  STORE scan 0 8
+
+  LABEL find_sep
+    s = LOAD scan 8
+    bound = IADD s 3 8
+    rl = LOAD req_length 8
+    past = IGE bound rl 8
+    BRANCH past no_sep check_sep
+
+  LABEL check_sep
+    s = LOAD scan 8
+    b1 = LOAD request 1 s
+    s1 = IADD s 1 8
+    b2 = LOAD request 1 s1
+    s2 = IADD s 2 8
+    b3 = LOAD request 1 s2
+    s3 = IADD s 3 8
+    b4 = LOAD request 1 s3
+    is_cr1 = IEQ b1 13 1
+    is_lf1 = IEQ b2 10 1
+    is_cr2 = IEQ b3 13 1
+    is_lf2 = IEQ b4 10 1
+    c1 = AND is_cr1 is_lf1 1
+    c2 = AND is_cr2 is_lf2 1
+    is_sep = AND c1 c2 1
+    BRANCH is_sep found_sep inc_scan
+
+  LABEL inc_scan
+    s = LOAD scan 8
+    ns = IADD s 1 8
+    STORE scan ns 8
+    JUMP find_sep
+
+  LABEL found_sep
+    s = LOAD scan 8
+    bs = IADD s 4 8
+    STORE bpos bs 8
+    JUMP copy_body
+
+  LABEL no_sep
+    # No separator found; treat body as empty
+    rl = LOAD req_length 8
+    STORE bpos rl 8
+
+  LABEL copy_body
+    bs = LOAD bpos 8
+    rl = LOAD req_length 8
+    done_body = IGE bs rl 8
+    BRANCH done_body finish copy_body_byte
+
+  LABEL copy_body_byte
+    bs = LOAD bpos 8
+    byte = LOAD request 1 bs
+    op = LOAD out 8
+    STORE result byte 1 op
+    np = IADD op 1 8
+    STORE out np 8
+    nbs = IADD bs 1 8
+    STORE bpos nbs 8
+    JUMP copy_body
+
+  LABEL finish
+    op = LOAD out 8
+    STORE result_length op 8
+    FREE out
+    FREE i
+    FREE bpos
+    FREE scan
+END

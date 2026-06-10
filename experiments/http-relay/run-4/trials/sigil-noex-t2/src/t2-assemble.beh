@@ -1,0 +1,78 @@
+BEHAVIOR t2-assemble
+
+DESCRIPTION
+  Builds the consumer output image: the 19-byte timestamp (first 19 bytes of
+  ts), then the literal " PROCESSED BY CONSUMER\n" (23 bytes), then body_len
+  bytes of body. Writes the assembled bytes to result and the total byte count
+  (42 + body_len) to length. The body is copied to its final position
+  (offset 42) BEFORE the timestamp and literal are written, so the result is
+  correct even if the body input buffer aliases the result output buffer (the
+  prefix bytes at [0,42) never overlap the body region at [42, 42+body_len)).
+
+CONTRACT
+  INPUT ts bytes 32
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH cbe0da81
+
+IMPLEMENTATION
+  blv = LOAD body_len 8
+  bi = ALLOC 8 int
+  STORE bi 0 8
+  LABEL body_loop
+    biv = LOAD bi 8
+    bc = ILT biv blv 8
+    BRANCH bc body_body body_done
+  LABEL body_body
+    bb = LOAD body 1 biv
+    dst = IADD biv 42 8
+    STORE result bb 1 dst
+    bn = IADD biv 1 8
+    STORE bi bn 8
+    JUMP body_loop
+  LABEL body_done
+    FREE bi
+    ti = ALLOC 8 int
+    STORE ti 0 8
+  LABEL ts_loop
+    tiv = LOAD ti 8
+    tc = ILT tiv 19 8
+    BRANCH tc ts_body ts_done
+  LABEL ts_body
+    tb = LOAD ts 1 tiv
+    STORE result tb 1 tiv
+    tn = IADD tiv 1 8
+    STORE ti tn 8
+    JUMP ts_loop
+  LABEL ts_done
+    FREE ti
+    STORE result 32 1 19
+    STORE result 80 1 20
+    STORE result 82 1 21
+    STORE result 79 1 22
+    STORE result 67 1 23
+    STORE result 69 1 24
+    STORE result 83 1 25
+    STORE result 83 1 26
+    STORE result 69 1 27
+    STORE result 68 1 28
+    STORE result 32 1 29
+    STORE result 66 1 30
+    STORE result 89 1 31
+    STORE result 32 1 32
+    STORE result 67 1 33
+    STORE result 79 1 34
+    STORE result 78 1 35
+    STORE result 83 1 36
+    STORE result 85 1 37
+    STORE result 77 1 38
+    STORE result 69 1 39
+    STORE result 82 1 40
+    STORE result 10 1 41
+    total = IADD blv 42 8
+    STORE length total 8
+END

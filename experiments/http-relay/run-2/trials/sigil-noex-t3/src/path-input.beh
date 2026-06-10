@@ -1,0 +1,25 @@
+BEHAVIOR path-input
+
+DESCRIPTION
+  Produces the null-terminated path "input.txt".
+
+CONTRACT
+  OUTPUT s bytes 16
+  OUTPUT n int 8
+  GUARANTEES writes_output
+
+HASH b4917e33
+
+IMPLEMENTATION
+  STORE s 105 1 0
+  STORE s 110 1 1
+  STORE s 112 1 2
+  STORE s 117 1 3
+  STORE s 116 1 4
+  STORE s 46 1 5
+  STORE s 116 1 6
+  STORE s 120 1 7
+  STORE s 116 1 8
+  STORE s 0 1 9
+  STORE n 9 8
+END

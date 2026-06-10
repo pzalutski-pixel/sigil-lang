@@ -1,0 +1,9 @@
+PROJECT consumer
+VERSION 1.0.0
+
+DESCRIPTION
+  Listens on 9822, frames the POST body with a timestamp, writes output.txt.
+
+ENTRY consumer-main consumer-main.beh
+
+END

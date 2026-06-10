@@ -1,0 +1,20 @@
+BEHAVIOR connect-9821
+
+DESCRIPTION
+  Connects a socket to 127.0.0.1:9821.
+
+CONTRACT
+  INPUT sock_fd int 8
+  OUTPUT status int 8
+  REQUIRES make-sockaddr@a9866fc0 connect@697435f5
+  GUARANTEES writes_output
+
+HASH 87a0517d
+
+COMPOSITION
+  # ip 127.0.0.1 packed network order, octet 0 (127) in low byte:
+  # 127 | 0<<8 | 0<<16 | 1<<24 = 127 + 16777216 = 16777343
+  addr_result = CALL make-sockaddr 9821 16777343
+  conn_result = CALL connect sock_fd addr_result.addr addr_result.addr_len
+  SET status conn_result.status
+END

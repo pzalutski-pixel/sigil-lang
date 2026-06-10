@@ -1,0 +1,11 @@
+BEHAVIOR pc-print-complete
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Producer-consumer complete!"
+  CALL println msg
+END

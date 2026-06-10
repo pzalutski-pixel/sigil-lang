@@ -1,0 +1,62 @@
+BEHAVIOR main
+
+DESCRIPTION
+  Consumer: listens on port 9814, accepts one HTTP POST, prepends a timestamp
+  and "PROCESSED BY CONSUMER" line to the body, and writes output.txt.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c make-addr-9814@00f67ec4 bind@697435f5 listen@95b7eb35 accept@e88849be receive@2ae7614b now@cee78134 format-time@83ebda2d build-output@38cf68f1 open@7d62cd96 write@874767ff close@d4ba30e5 close-socket@d4ba30e5 println@a273ebb3
+  GUARANTEES writes_output
+
+HASH ffbec3e7
+
+COMPOSITION
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Build sockaddr_in for port 9814 and bind
+  addr_result = CALL make-addr-9814
+  bind_result = CALL bind sock_fd addr_result.addr 16
+  DISCARD bind_result
+
+  # Listen with backlog 10
+  listen_result = CALL listen sock_fd 10
+  DISCARD listen_result
+
+  msg = "Consumer listening on port 9814"
+  CALL println msg
+
+  # Accept one connection
+  accept_result = CALL accept sock_fd
+  client_fd = accept_result.client_fd
+  DISCARD accept_result.client_addr
+  DISCARD accept_result.addr_len
+
+  # Receive the HTTP request
+  recv_result = CALL receive client_fd 65536
+
+  # Current timestamp as "YYYY-MM-DD HH:MM:SS"
+  now_result = CALL now
+  ft_result = CALL format-time now_result.timestamp
+
+  # Assemble the output buffer
+  out_result = CALL build-output recv_result.buffer recv_result.bytes_received ft_result.formatted ft_result.length
+
+  # Open output.txt for writing (flags = 3 = write + create) and write
+  out_path = "output.txt"
+  open_result = CALL open out_path 3
+  write_result = CALL write open_result.fd out_result.out out_result.out_len
+  DISCARD write_result
+
+  close_result = CALL close open_result.fd
+  DISCARD close_result
+
+  close_client = CALL close-socket client_fd
+  DISCARD close_client
+  close_server = CALL close-socket sock_fd
+  DISCARD close_server
+
+  SET status 0
+END

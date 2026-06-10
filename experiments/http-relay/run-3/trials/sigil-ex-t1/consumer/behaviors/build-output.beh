@@ -1,0 +1,184 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Builds the consumer output buffer from a received HTTP request.
+  Finds the body (after the CRLFCRLF that ends the headers), then emits:
+    <timestamp> PROCESSED BY CONSUMER\n<body>\n
+  raw      = received HTTP request bytes
+  raw_len  = number of valid bytes in raw
+  ts       = timestamp string "YYYY-MM-DD HH:MM:SS"
+  ts_len   = number of valid bytes in ts
+  out      = assembled output bytes
+  out_len  = number of bytes written to out
+
+CONTRACT
+  INPUT raw bytes 65536
+  INPUT raw_len int 8
+  INPUT ts bytes 32
+  INPUT ts_len int 8
+  OUTPUT out bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH 38cf68f1
+
+IMPLEMENTATION
+  # --- locals ---
+  i = ALLOC 8 int
+  STORE i 0 8
+  body_start = ALLOC 8 int
+  STORE body_start 0 8
+  op = ALLOC 8 int
+  STORE op 0 8
+
+  rlen = LOAD raw_len 8
+
+  # --- find the CRLFCRLF that terminates the headers ---
+  LABEL find_sep
+    scan = LOAD i 8
+    bound = IADD scan 3 8
+    past = IGE bound rlen 8
+    BRANCH past no_header check_sep
+
+  LABEL check_sep
+    scan = LOAD i 8
+    b1 = LOAD raw 1 scan
+    n1 = IADD scan 1 8
+    b2 = LOAD raw 1 n1
+    n2 = IADD scan 2 8
+    b3 = LOAD raw 1 n2
+    n3 = IADD scan 3 8
+    b4 = LOAD raw 1 n3
+    is_cr1 = IEQ b1 13 1
+    is_lf1 = IEQ b2 10 1
+    is_cr2 = IEQ b3 13 1
+    is_lf2 = IEQ b4 10 1
+    c1 = AND is_cr1 is_lf1 1
+    c2 = AND is_cr2 is_lf2 1
+    is_sep = AND c1 c2 1
+    BRANCH is_sep found_sep inc_scan
+
+  LABEL inc_scan
+    scan = LOAD i 8
+    nscan = IADD scan 1 8
+    STORE i nscan 8
+    JUMP find_sep
+
+  LABEL no_header
+    # No header separator found; treat whole buffer as body starting at 0
+    STORE body_start 0 8
+    JUMP write_prefix
+
+  LABEL found_sep
+    scan = LOAD i 8
+    bs = IADD scan 4 8
+    STORE body_start bs 8
+
+  # --- write timestamp into out ---
+  LABEL write_prefix
+    STORE op 0 8
+    STORE i 0 8
+
+  LABEL copy_ts
+    idx = LOAD i 8
+    tl = LOAD ts_len 8
+    done_ts = IGE idx tl 8
+    BRANCH done_ts after_ts copy_ts_byte
+
+  LABEL copy_ts_byte
+    idx = LOAD i 8
+    byte = LOAD ts 1 idx
+    pos = LOAD op 8
+    STORE out byte 1 pos
+    npos = IADD pos 1 8
+    STORE op npos 8
+    nidx = IADD idx 1 8
+    STORE i nidx 8
+    JUMP copy_ts
+
+  LABEL after_ts
+    # write " PROCESSED BY CONSUMER\n"
+    pos = LOAD op 8
+    STORE out 32 1 pos
+    pos = IADD pos 1 8
+    STORE out 80 1 pos
+    pos = IADD pos 1 8
+    STORE out 82 1 pos
+    pos = IADD pos 1 8
+    STORE out 79 1 pos
+    pos = IADD pos 1 8
+    STORE out 67 1 pos
+    pos = IADD pos 1 8
+    STORE out 69 1 pos
+    pos = IADD pos 1 8
+    STORE out 83 1 pos
+    pos = IADD pos 1 8
+    STORE out 83 1 pos
+    pos = IADD pos 1 8
+    STORE out 69 1 pos
+    pos = IADD pos 1 8
+    STORE out 68 1 pos
+    pos = IADD pos 1 8
+    STORE out 32 1 pos
+    pos = IADD pos 1 8
+    STORE out 66 1 pos
+    pos = IADD pos 1 8
+    STORE out 89 1 pos
+    pos = IADD pos 1 8
+    STORE out 32 1 pos
+    pos = IADD pos 1 8
+    STORE out 67 1 pos
+    pos = IADD pos 1 8
+    STORE out 79 1 pos
+    pos = IADD pos 1 8
+    STORE out 78 1 pos
+    pos = IADD pos 1 8
+    STORE out 83 1 pos
+    pos = IADD pos 1 8
+    STORE out 85 1 pos
+    pos = IADD pos 1 8
+    STORE out 77 1 pos
+    pos = IADD pos 1 8
+    STORE out 69 1 pos
+    pos = IADD pos 1 8
+    STORE out 82 1 pos
+    pos = IADD pos 1 8
+    STORE out 10 1 pos
+    pos = IADD pos 1 8
+    STORE op pos 8
+
+  # --- copy body bytes (body_start .. raw_len) ---
+  LABEL body_setup
+    STORE i 0 8
+
+  LABEL body_loop
+    k = LOAD i 8
+    bs = LOAD body_start 8
+    src = IADD bs k 8
+    at_end = IGE src rlen 8
+    BRANCH at_end after_body copy_body_byte
+
+  LABEL copy_body_byte
+    k = LOAD i 8
+    bs = LOAD body_start 8
+    src = IADD bs k 8
+    byte = LOAD raw 1 src
+    pos = LOAD op 8
+    STORE out byte 1 pos
+    npos = IADD pos 1 8
+    STORE op npos 8
+    nk = IADD k 1 8
+    STORE i nk 8
+    JUMP body_loop
+
+  LABEL after_body
+    # trailing newline
+    pos = LOAD op 8
+    STORE out 10 1 pos
+    pos = IADD pos 1 8
+    STORE out_len pos 8
+
+    FREE i
+    FREE body_start
+    FREE op
+END

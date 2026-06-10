@@ -1,0 +1,13 @@
+EXECUTABLE kv-store
+
+DESCRIPTION
+  Demo entry point for key-value store.
+  Spawns the kvstore pattern, which owns the store buffer (pattern MEMORY)
+  and runs the create / set / get / delete demo in ON_CREATE.
+
+USES kvstore.pattern
+
+ENTRY
+  handle = SPAWN kvstore
+  result = WAIT handle
+END_EXECUTABLE

@@ -1,0 +1,17 @@
+BEHAVIOR read
+
+DESCRIPTION
+  Reads bytes from file descriptor into buffer.
+  Returns number of bytes actually read.
+  Returns 0 on end-of-file, negative on error.
+
+CONTRACT
+  INPUT fd int 8
+  INPUT count int 8
+  OUTPUT buffer bytes 65536
+  OUTPUT bytes_read int 8
+  GUARANTEES writes_output
+
+HASH 82ce10f8
+
+NATIVE

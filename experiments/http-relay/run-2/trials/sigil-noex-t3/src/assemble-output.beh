@@ -1,0 +1,107 @@
+BEHAVIOR assemble-output
+
+DESCRIPTION
+  Builds final output: formatted timestamp, then a space and the
+  literal "PROCESSED BY CONSUMER" line, then the body.
+  Layout: formatted[fmtlen] + " PROCESSED BY CONSUMER\n"(23) + body[bodylen]
+
+CONTRACT
+  INPUT formatted bytes 32
+  INPUT fmtlen int 8
+  INPUT body bytes 65536
+  INPUT bodylen int 8
+  OUTPUT result bytes 65536
+  OUTPUT total int 8
+  GUARANTEES writes_output
+
+HASH ebad9b4c
+
+IMPLEMENTATION
+  fl = LOAD fmtlen 8
+  bl = LOAD bodylen 8
+
+  # --- copy formatted[0..fl) into result[0..] ---
+  i = ALLOC 8 int
+  STORE i 0 8
+  LABEL fmt_loop
+    iv = LOAD i 8
+    done1 = IGE iv fl 8
+    BRANCH done1 fmt_done fmt_body
+  LABEL fmt_body
+    b = LOAD formatted 1 iv
+    STORE result b 1 iv
+    iv2 = IADD iv 1 8
+    STORE i iv2 8
+    JUMP fmt_loop
+  LABEL fmt_done
+
+  # --- store the 23-byte literal " PROCESSED BY CONSUMER\n" at offset fl ---
+  o0 = IADD fl 0 8
+  STORE result 32 1 o0
+  o1 = IADD fl 1 8
+  STORE result 80 1 o1
+  o2 = IADD fl 2 8
+  STORE result 82 1 o2
+  o3 = IADD fl 3 8
+  STORE result 79 1 o3
+  o4 = IADD fl 4 8
+  STORE result 67 1 o4
+  o5 = IADD fl 5 8
+  STORE result 69 1 o5
+  o6 = IADD fl 6 8
+  STORE result 83 1 o6
+  o7 = IADD fl 7 8
+  STORE result 83 1 o7
+  o8 = IADD fl 8 8
+  STORE result 69 1 o8
+  o9 = IADD fl 9 8
+  STORE result 68 1 o9
+  o10 = IADD fl 10 8
+  STORE result 32 1 o10
+  o11 = IADD fl 11 8
+  STORE result 66 1 o11
+  o12 = IADD fl 12 8
+  STORE result 89 1 o12
+  o13 = IADD fl 13 8
+  STORE result 32 1 o13
+  o14 = IADD fl 14 8
+  STORE result 67 1 o14
+  o15 = IADD fl 15 8
+  STORE result 79 1 o15
+  o16 = IADD fl 16 8
+  STORE result 78 1 o16
+  o17 = IADD fl 17 8
+  STORE result 83 1 o17
+  o18 = IADD fl 18 8
+  STORE result 85 1 o18
+  o19 = IADD fl 19 8
+  STORE result 77 1 o19
+  o20 = IADD fl 20 8
+  STORE result 69 1 o20
+  o21 = IADD fl 21 8
+  STORE result 82 1 o21
+  o22 = IADD fl 22 8
+  STORE result 10 1 o22
+
+  # --- copy body[0..bl) into result starting at fl+23 ---
+  base = IADD fl 23 8
+  j = ALLOC 8 int
+  STORE j 0 8
+  LABEL body_loop
+    jv = LOAD j 8
+    done2 = IGE jv bl 8
+    BRANCH done2 body_done body_body
+  LABEL body_body
+    bb = LOAD body 1 jv
+    dst = IADD base jv 8
+    STORE result bb 1 dst
+    jv2 = IADD jv 1 8
+    STORE j jv2 8
+    JUMP body_loop
+  LABEL body_done
+
+  FREE i
+  FREE j
+  tot = IADD base bl 8
+  STORE total tot 8
+END

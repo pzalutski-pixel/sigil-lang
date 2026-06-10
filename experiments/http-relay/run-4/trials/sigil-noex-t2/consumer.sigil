@@ -1,0 +1,38 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Listens on TCP port 9812 for one HTTP POST. Receives in a loop, accumulating
+  chunks until the full request (header + 11-byte body) has arrived, extracts
+  the body, prepends "<timestamp> PROCESSED BY CONSUMER\n", and writes the
+  result to output.txt. The running accumulator state lives in the acc buffer,
+  so the loop carries no composition value.
+
+ENTRY
+  pathout = "output.txt"
+  sock = CALL socket 2 1
+  sa = CALL make-sockaddr 9812 0
+  CALL bind sock.fd sa.addr sa.addr_len -> bstatus
+  DISCARD bstatus
+  CALL listen sock.fd 16 -> lstatus
+  DISCARD lstatus
+  conn = CALL accept sock.fd
+  DISCARD conn.client_addr
+  DISCARD conn.addr_len
+  acc = CALL t2-acc-init
+  LABEL rloop
+    r = CALL receive conn.client_fd 65536
+    CALL t2-acc-append acc r.buffer r.bytes_received
+    chk = CALL t2-acc-complete acc
+    BRANCH chk.done rdone rloop
+  LABEL rdone
+    fin = CALL t2-acc-finish acc
+    ts = CALL now
+    ft = CALL format-time ts.timestamp
+    asm = CALL t2-assemble ft.formatted fin.body fin.body_len
+    out = CALL write-file-all pathout asm.result asm.length
+    DISCARD out.bytes_written
+    CALL close-socket conn.client_fd -> cs1
+    DISCARD cs1
+    CALL close-socket sock.fd -> cs2
+    DISCARD cs2
+END_EXECUTABLE

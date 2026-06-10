@@ -1,0 +1,57 @@
+BEHAVIOR parse-addr
+
+DESCRIPTION
+  Parses a null-terminated dotted-decimal IPv4 string ("a.b.c.d") into a packed
+  int in network order (octet 0 in the low byte), suitable for make-sockaddr's
+  ip input. ok = 1 if exactly 4 octets were seen, else 0 (no per-octet range
+  validation).
+
+CONTRACT
+  INPUT s bytes 256
+  OUTPUT ip int 8
+  OUTPUT ok int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 4469b343
+
+IMPLEMENTATION
+  acc = 0
+  octet = 0
+  shift = 0
+  i = 0
+  count = 0
+
+  LABEL loop
+    c = LOAD s 1 i
+    cz = IEQ c 0 1
+    BRANCH cz finish notend
+
+  LABEL notend
+    cu = AND c 255 8
+    isdot = IEQ cu 46 8
+    BRANCH isdot dotsep digit
+
+  LABEL digit
+    d = ISUB cu 48 8
+    octet = IMUL octet 10 8
+    octet = IADD octet d 8
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL dotsep
+    contrib = SHL octet shift 8
+    acc = OR acc contrib 8
+    shift = IADD shift 8 8
+    octet = 0
+    count = IADD count 1 8
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL finish
+    contrib = SHL octet shift 8
+    acc = OR acc contrib 8
+    count = IADD count 1 8
+    STORE ip acc 8
+    isok = IEQ count 4 8
+    STORE ok isok 8
+END

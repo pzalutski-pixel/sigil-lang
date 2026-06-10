@@ -1,0 +1,18 @@
+BEHAVIOR is-negative
+
+DESCRIPTION
+  Checks if an integer value is negative (less than 0).
+  Returns 1 if negative, 0 otherwise.
+
+CONTRACT
+  INPUT value int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b15b0b3a
+
+IMPLEMENTATION
+  v = LOAD value 8
+  is_neg = ILT v 0 8
+  STORE result is_neg 8
+END

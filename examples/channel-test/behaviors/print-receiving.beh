@@ -1,0 +1,11 @@
+BEHAVIOR print-receiving
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Receiving values..."
+  CALL println msg
+END

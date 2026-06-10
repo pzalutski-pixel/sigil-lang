@@ -1,0 +1,35 @@
+BEHAVIOR fnv1a
+
+DESCRIPTION
+  64-bit FNV-1a hash of the first len bytes of data. Offset basis
+  cbf29ce484222325 (hex), prime 100000001b3 (hex); 64-bit wrapping arithmetic
+  (the result is the raw 64-bit pattern, so it reads back as a signed int).
+  Empty input yields the offset basis.
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT len int 8
+  OUTPUT hash int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b1b0b5ec
+
+IMPLEMENTATION
+  lenv = LOAD len 8
+  h = -3750763034362895725
+  i = 0
+
+  LABEL loop
+    done = IGE i lenv 8
+    BRANCH done fin body
+  LABEL body
+    b = LOAD data 1 i
+    bu = AND b 255 8
+    h = XOR h bu 8
+    h = IMUL h 1099511628211 8
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL fin
+    STORE hash h 8
+END

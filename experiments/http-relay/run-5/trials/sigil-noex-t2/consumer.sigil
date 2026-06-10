@@ -1,0 +1,46 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Listens on TCP port 9812 for an HTTP POST. On a request, prepends a timestamp
+  and " PROCESSED BY CONSUMER\n" to the body and writes the result to output.txt.
+
+ENTRY
+  # Create a TCP socket (AF_INET=2, SOCK_STREAM=1).
+  sockres = CALL socket 2 1
+
+  # Bind to 0.0.0.0:9812 (ip 0 = any).
+  baddr = CALL make-sockaddr 9812 0
+  bindres = CALL bind sockres.fd baddr.addr baddr.addr_len
+  DISCARD bindres.status
+
+  # Listen, backlog 1.
+  listenres = CALL listen sockres.fd 1
+  DISCARD listenres.status
+
+  # Accept one client connection.
+  acc = CALL accept sockres.fd
+  DISCARD acc.client_addr
+  DISCARD acc.addr_len
+
+  # Receive the request.
+  rcv = CALL receive acc.client_fd 65536
+
+  # Get the current time and format it as "YYYY-MM-DD HH:MM:SS".
+  t = CALL now
+  ft = CALL format-time t.timestamp
+  DISCARD ft.length
+
+  # Assemble the output bytes.
+  outres = CALL build-output rcv.buffer rcv.bytes_received ft.formatted
+
+  # Write to output.txt.
+  outpath = "output.txt"
+  wres = CALL write-file-all outpath outres.out outres.out_len
+  DISCARD wres.bytes_written
+
+  # Close sockets.
+  cc = CALL close-socket acc.client_fd
+  DISCARD cc.status
+  cs = CALL close-socket sockres.fd
+  DISCARD cs.status
+END_EXECUTABLE

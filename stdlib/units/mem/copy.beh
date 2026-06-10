@@ -1,0 +1,46 @@
+BEHAVIOR copy
+
+DESCRIPTION
+  Copies bytes from source to destination buffer.
+  Equivalent to memcpy in C.
+  Returns number of bytes copied.
+
+CONTRACT
+  INPUT src bytes 65536
+  INPUT src_offset int 8
+  INPUT dst bytes 65536
+  INPUT dst_offset int 8
+  INPUT count int 8
+  OUTPUT bytes_copied int 8
+  GUARANTEES writes_output
+
+HASH 05c62b49
+
+IMPLEMENTATION
+  src_off = LOAD src_offset 8
+  dst_off = LOAD dst_offset 8
+  n = LOAD count 8
+
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  LABEL copy_loop
+    idx = LOAD i 8
+    done = IGE idx n 8
+    BRANCH done finish copy_byte
+
+  LABEL copy_byte
+    idx = LOAD i 8
+    src_pos = IADD src_off idx 8
+    dst_pos = IADD dst_off idx 8
+    byte = LOAD src 1 src_pos
+    STORE dst byte 1 dst_pos
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP copy_loop
+
+  LABEL finish
+    final = LOAD i 8
+    STORE bytes_copied final 8
+    FREE i
+END

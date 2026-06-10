@@ -1,0 +1,31 @@
+BEHAVIOR make-client-addr
+
+DESCRIPTION
+  Creates sockaddr_in structure for connecting to 127.0.0.1:9753
+  AF_INET=2, port=9753 in network byte order, addr=127.0.0.1
+
+CONTRACT
+  OUTPUT addr bytes 128
+  OUTPUT addr_len int 8
+  GUARANTEES writes_output
+
+HASH 25b33dd7
+
+IMPLEMENTATION
+  # sin_family = AF_INET = 2 (at offset 0, 2 bytes)
+  STORE addr 2 2 0
+
+  # sin_port = 9753 in network byte order
+  # 9753 = 0x2619, swapped = 0x1926 = 6438
+  STORE addr 6438 2 2
+
+  # sin_addr = 127.0.0.1
+  # 127.0.0.1 = 0x7F000001, swapped for LE storage = 0x0100007F = 16777343
+  STORE addr 16777343 4 4
+
+  # Zero padding (offsets 8-15)
+  STORE addr 0 8 8
+
+  # Set address length
+  STORE addr_len 16 8
+END

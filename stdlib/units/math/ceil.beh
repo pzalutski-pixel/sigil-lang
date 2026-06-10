@@ -1,0 +1,22 @@
+BEHAVIOR ceil
+
+DESCRIPTION
+  Smallest integer >= x (mathematical ceiling), returned as an int. Truncation
+  (FTOI) rounds toward zero; for a positive x with a fractional part that is
+  one too low, so add the correction. ceil(2.1)=3, ceil(-2.7)=-2.
+
+CONTRACT
+  INPUT x float 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b6cfd5dd
+
+IMPLEMENTATION
+  xv = LOAD x 8
+  t = FTOI xv 8 8
+  tf = ITOF t 8 8
+  lt = FLT tf xv 8
+  r = IADD t lt 8
+  STORE result r 8
+END

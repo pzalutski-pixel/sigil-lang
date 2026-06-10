@@ -1,0 +1,194 @@
+BEHAVIOR build-http-post
+
+DESCRIPTION
+  Builds an HTTP POST request with the given body.
+  Format: POST / HTTP/1.1\r\nHost: localhost:9753\r\nContent-Length: N\r\n\r\nbody
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT request bytes 65536
+  OUTPUT request_len int 8
+  GUARANTEES writes_output
+
+HASH 757a97ba
+
+IMPLEMENTATION
+  pos = ALLOC 8 int
+  STORE pos 0 8
+  i = ALLOC 8 int
+  blen = LOAD body_len 8
+
+  # "POST / HTTP/1.1\r\n" (17 bytes)
+  STORE request 80 1 0
+  STORE request 79 1 1
+  STORE request 83 1 2
+  STORE request 84 1 3
+  STORE request 32 1 4
+  STORE request 47 1 5
+  STORE request 32 1 6
+  STORE request 72 1 7
+  STORE request 84 1 8
+  STORE request 84 1 9
+  STORE request 80 1 10
+  STORE request 47 1 11
+  STORE request 49 1 12
+  STORE request 46 1 13
+  STORE request 49 1 14
+  STORE request 13 1 15
+  STORE request 10 1 16
+
+  # "Host: localhost:9753\r\n" (22 bytes) at offset 17
+  STORE request 72 1 17
+  STORE request 111 1 18
+  STORE request 115 1 19
+  STORE request 116 1 20
+  STORE request 58 1 21
+  STORE request 32 1 22
+  STORE request 108 1 23
+  STORE request 111 1 24
+  STORE request 99 1 25
+  STORE request 97 1 26
+  STORE request 108 1 27
+  STORE request 104 1 28
+  STORE request 111 1 29
+  STORE request 115 1 30
+  STORE request 116 1 31
+  STORE request 58 1 32
+  STORE request 57 1 33
+  STORE request 55 1 34
+  STORE request 53 1 35
+  STORE request 51 1 36
+  STORE request 13 1 37
+  STORE request 10 1 38
+
+  # "Content-Length: " (16 bytes) at offset 39
+  STORE request 67 1 39
+  STORE request 111 1 40
+  STORE request 110 1 41
+  STORE request 116 1 42
+  STORE request 101 1 43
+  STORE request 110 1 44
+  STORE request 116 1 45
+  STORE request 45 1 46
+  STORE request 76 1 47
+  STORE request 101 1 48
+  STORE request 110 1 49
+  STORE request 103 1 50
+  STORE request 116 1 51
+  STORE request 104 1 52
+  STORE request 58 1 53
+  STORE request 32 1 54
+  STORE pos 55 8
+
+  # Write body length as decimal (handles 0-9999)
+  # Check number of digits needed
+  is_big = IGE blen 1000 8
+  BRANCH is_big four_digits check_hundred
+
+  LABEL check_hundred
+    is_med = IGE blen 100 8
+    BRANCH is_med three_digits check_ten
+
+  LABEL check_ten
+    is_small = IGE blen 10 8
+    BRANCH is_small two_digits one_digit
+
+  LABEL four_digits
+    thou = IDIV blen 1000 8
+    rem = IMOD blen 1000 8
+    hund = IDIV rem 100 8
+    rem2 = IMOD rem 100 8
+    tens = IDIV rem2 10 8
+    ones = IMOD rem2 10 8
+    c1 = IADD thou 48 8
+    c2 = IADD hund 48 8
+    c3 = IADD tens 48 8
+    c4 = IADD ones 48 8
+    p = LOAD pos 8
+    STORE request c1 1 p
+    p2 = IADD p 1 8
+    STORE request c2 1 p2
+    p3 = IADD p2 1 8
+    STORE request c3 1 p3
+    p4 = IADD p3 1 8
+    STORE request c4 1 p4
+    p5 = IADD p4 1 8
+    STORE pos p5 8
+    JUMP write_crlf
+
+  LABEL three_digits
+    hund = IDIV blen 100 8
+    rem = IMOD blen 100 8
+    tens = IDIV rem 10 8
+    ones = IMOD rem 10 8
+    c1 = IADD hund 48 8
+    c2 = IADD tens 48 8
+    c3 = IADD ones 48 8
+    p = LOAD pos 8
+    STORE request c1 1 p
+    p2 = IADD p 1 8
+    STORE request c2 1 p2
+    p3 = IADD p2 1 8
+    STORE request c3 1 p3
+    p4 = IADD p3 1 8
+    STORE pos p4 8
+    JUMP write_crlf
+
+  LABEL two_digits
+    tens = IDIV blen 10 8
+    ones = IMOD blen 10 8
+    c1 = IADD tens 48 8
+    c2 = IADD ones 48 8
+    p = LOAD pos 8
+    STORE request c1 1 p
+    p2 = IADD p 1 8
+    STORE request c2 1 p2
+    p3 = IADD p2 1 8
+    STORE pos p3 8
+    JUMP write_crlf
+
+  LABEL one_digit
+    c = IADD blen 48 8
+    p = LOAD pos 8
+    STORE request c 1 p
+    p2 = IADD p 1 8
+    STORE pos p2 8
+
+  LABEL write_crlf
+    # "\r\n\r\n" (4 bytes)
+    p = LOAD pos 8
+    STORE request 13 1 p
+    p = IADD p 1 8
+    STORE request 10 1 p
+    p = IADD p 1 8
+    STORE request 13 1 p
+    p = IADD p 1 8
+    STORE request 10 1 p
+    p = IADD p 1 8
+    STORE pos p 8
+
+  # Copy body
+  STORE i 0 8
+  LABEL copy_body
+    idx = LOAD i 8
+    done = IGE idx blen 8
+    BRANCH done finish copy_byte
+
+  LABEL copy_byte
+    idx = LOAD i 8
+    byte = LOAD body 1 idx
+    p = LOAD pos 8
+    STORE request byte 1 p
+    p = IADD p 1 8
+    STORE pos p 8
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP copy_body
+
+  LABEL finish
+    total = LOAD pos 8
+    STORE request_len total 8
+    FREE pos
+    FREE i
+END

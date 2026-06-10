@@ -1,0 +1,149 @@
+BEHAVIOR build-request
+
+DESCRIPTION
+  Builds an HTTP/1.1 POST request whose body is the given bytes:
+    POST / HTTP/1.1\r\n
+    Host: localhost:9821\r\n
+    Content-Length: <clen>\r\n
+    \r\n
+    <body>
+  clen is the decimal Content-Length already rendered as text (clen bytes of
+  clen_str). Writes the full request to out and its byte count to out_len.
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  INPUT clen_str bytes 32
+  INPUT clen_len int 8
+  OUTPUT out bytes 65536
+  OUTPUT out_len int 8
+  GUARANTEES writes_output
+
+HASH f30b14ab
+
+IMPLEMENTATION
+  clenv = LOAD clen_len 8
+  blenv = LOAD body_len 8
+  w = ALLOC 8 int
+  STORE w 0 8
+
+  # "POST / HTTP/1.1\r\n"  (17 bytes)
+  STORE out 80 1 0     # P
+  STORE out 79 1 1     # O
+  STORE out 83 1 2     # S
+  STORE out 84 1 3     # T
+  STORE out 32 1 4     # ' '
+  STORE out 47 1 5     # /
+  STORE out 32 1 6     # ' '
+  STORE out 72 1 7     # H
+  STORE out 84 1 8     # T
+  STORE out 84 1 9     # T
+  STORE out 80 1 10    # P
+  STORE out 47 1 11    # /
+  STORE out 49 1 12    # 1
+  STORE out 46 1 13    # .
+  STORE out 49 1 14    # 1
+  STORE out 13 1 15    # \r
+  STORE out 10 1 16    # \n
+
+  # "Host: localhost:9821\r\n" (22 bytes) at offset 17
+  STORE out 72 1 17    # H
+  STORE out 111 1 18   # o
+  STORE out 115 1 19   # s
+  STORE out 116 1 20   # t
+  STORE out 58 1 21    # :
+  STORE out 32 1 22    # ' '
+  STORE out 108 1 23   # l
+  STORE out 111 1 24   # o
+  STORE out 99 1 25    # c
+  STORE out 97 1 26    # a
+  STORE out 108 1 27   # l
+  STORE out 104 1 28   # h
+  STORE out 111 1 29   # o
+  STORE out 115 1 30   # s
+  STORE out 116 1 31   # t
+  STORE out 58 1 32    # :
+  STORE out 57 1 33    # 9
+  STORE out 56 1 34    # 8
+  STORE out 50 1 35    # 2
+  STORE out 49 1 36    # 1
+  STORE out 13 1 37    # \r
+  STORE out 10 1 38    # \n
+
+  # "Content-Length: " (16 bytes) at offset 39
+  STORE out 67 1 39    # C
+  STORE out 111 1 40   # o
+  STORE out 110 1 41   # n
+  STORE out 116 1 42   # t
+  STORE out 101 1 43   # e
+  STORE out 110 1 44   # n
+  STORE out 116 1 45   # t
+  STORE out 45 1 46    # -
+  STORE out 76 1 47    # L
+  STORE out 101 1 48   # e
+  STORE out 110 1 49   # n
+  STORE out 103 1 50   # g
+  STORE out 116 1 51   # t
+  STORE out 104 1 52   # h
+  STORE out 58 1 53    # :
+  STORE out 32 1 54    # ' '
+
+  STORE w 55 8
+
+  # append clen_str (clen_len bytes)
+  c = ALLOC 8 int
+  STORE c 0 8
+  LABEL clen_loop
+    cv = LOAD c 8
+    cmore = ILT cv clenv 8
+    BRANCH cmore clen_byte clen_done
+  LABEL clen_byte
+    cv2 = LOAD c 8
+    cb = LOAD clen_str 1 cv2
+    wv = LOAD w 8
+    STORE out cb 1 wv
+    wn = IADD wv 1 8
+    STORE w wn 8
+    cv3 = IADD cv2 1 8
+    STORE c cv3 8
+    JUMP clen_loop
+  LABEL clen_done
+
+  # "\r\n\r\n" (4 bytes)
+  wv2 = LOAD w 8
+  STORE out 13 1 wv2
+  p1 = IADD wv2 1 8
+  STORE out 10 1 p1
+  p2 = IADD wv2 2 8
+  STORE out 13 1 p2
+  p3 = IADD wv2 3 8
+  STORE out 10 1 p3
+  wv3 = IADD wv2 4 8
+  STORE w wv3 8
+
+  # append body (body_len bytes)
+  j = ALLOC 8 int
+  STORE j 0 8
+  LABEL body_loop
+    jv = LOAD j 8
+    bmore = ILT jv blenv 8
+    BRANCH bmore body_byte body_done
+  LABEL body_byte
+    jv2 = LOAD j 8
+    bb = LOAD body 1 jv2
+    wbv = LOAD w 8
+    STORE out bb 1 wbv
+    wbn = IADD wbv 1 8
+    STORE w wbn 8
+    jv3 = IADD jv2 1 8
+    STORE j jv3 8
+    JUMP body_loop
+  LABEL body_done
+
+  total = LOAD w 8
+  STORE out_len total 8
+
+  FREE w
+  FREE c
+  FREE j
+END

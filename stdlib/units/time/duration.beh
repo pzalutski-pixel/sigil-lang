@@ -1,0 +1,20 @@
+BEHAVIOR duration
+
+DESCRIPTION
+  Calculates difference between two timestamps in milliseconds.
+  Pure computation, no syscalls.
+
+CONTRACT
+  INPUT start int 8
+  INPUT end int 8
+  OUTPUT diff int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 229d3d34
+
+IMPLEMENTATION
+  start_ms = LOAD start 8
+  end_ms = LOAD end 8
+  difference = ISUB end_ms start_ms 8
+  STORE diff difference 8
+END

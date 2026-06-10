@@ -1,0 +1,21 @@
+EXECUTABLE channel-test
+
+DESCRIPTION
+  Test channel with spawned producer pattern.
+
+USES producer.pattern
+
+ENTRY
+  CALL print-creating
+  ch = CHANNEL int 10
+  CALL print-spawning
+  prod = SPAWN producer ch
+  CALL print-receiving
+  v1 = CHANNEL_RECEIVE ch
+  v2 = CHANNEL_RECEIVE ch
+  v3 = CHANNEL_RECEIVE ch
+  CALL print-waiting
+  result = WAIT prod
+  CALL print-done
+  SET status 0
+END_EXECUTABLE

@@ -1,0 +1,25 @@
+BEHAVIOR build-output
+DESCRIPTION
+  Assembles the output line(s): a 19-char "YYYY-MM-DD HH:MM:SS" timestamp,
+  then " PROCESSED BY CONSUMER\n" (23 bytes), then the request body.
+  Returns the assembled buffer and its total length.
+CONTRACT
+  INPUT timestamp bytes 32
+  INPUT body bytes 65536
+  INPUT body_length int 8
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  REQUIRES string-to-bytes@a2e66e29 copy@05c62b49 iadd@8b41ba23
+HASH 3f274f08
+COMPOSITION
+  mid = CALL string-to-bytes " PROCESSED BY CONSUMER\n"
+  c1 = CALL copy timestamp 0 result 0 19
+  DISCARD c1.bytes_copied
+  c2 = CALL copy mid.data 0 result 19 mid.length
+  DISCARD c2.bytes_copied
+  off1 = CALL iadd 19 mid.length
+  c3 = CALL copy body 0 result off1.sum body_length
+  DISCARD c3.bytes_copied
+  total = CALL iadd off1.sum body_length
+  SET length total.sum
+END

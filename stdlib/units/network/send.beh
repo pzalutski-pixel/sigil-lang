@@ -1,0 +1,19 @@
+BEHAVIOR send
+
+DESCRIPTION
+  Sends data on a connected socket.
+  Returns number of bytes sent, negative on error.
+  May send fewer bytes than requested.
+  Data is a raw byte buffer with an explicit length; a socket sends bytes.
+  To send a string, translate it to bytes first (string-to-bytes).
+
+CONTRACT
+  INPUT fd int 8
+  INPUT data bytes 65536
+  INPUT length int 8
+  OUTPUT bytes_sent int 8
+  GUARANTEES writes_output
+
+HASH 8c6f3cb7
+
+NATIVE

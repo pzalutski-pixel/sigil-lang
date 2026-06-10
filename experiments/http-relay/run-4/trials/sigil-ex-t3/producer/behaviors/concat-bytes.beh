@@ -1,0 +1,59 @@
+BEHAVIOR concat-bytes
+
+DESCRIPTION
+  Concatenates two raw byte buffers: copies the first alen bytes of a, then the
+  first blen bytes of b, into result. length is alen + blen. Unlike the stdlib
+  concat this carries explicit lengths (no null terminator) so it is safe for
+  binary request data.
+
+CONTRACT
+  INPUT a bytes 65536
+  INPUT alen int 8
+  INPUT b bytes 65536
+  INPUT blen int 8
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH fa25bca7
+
+IMPLEMENTATION
+  # defaults so both outputs are written on every path
+  STORE result 0 1 0
+  STORE length 0 8
+  al = LOAD alen 8
+  bl = LOAD blen 8
+  i = ALLOC 8 int
+  STORE i 0 8
+  LABEL a_start
+    iv = LOAD i 8
+    amore = ILT iv al 8
+    BRANCH amore a_body b_setup
+  LABEL a_body
+    av = LOAD a 1 iv
+    STORE result av 1 iv
+    in = IADD iv 1 8
+    STORE i in 8
+    JUMP a_start
+
+  LABEL b_setup
+    j = ALLOC 8 int
+    STORE j 0 8
+  LABEL b_start
+    jv = LOAD j 8
+    bmore = ILT jv bl 8
+    BRANCH bmore b_body finish
+  LABEL b_body
+    bv = LOAD b 1 jv
+    dstoff = IADD al jv 8
+    STORE result bv 1 dstoff
+    jn = IADD jv 1 8
+    STORE j jn 8
+    JUMP b_start
+
+  LABEL finish
+    total = IADD al bl 8
+    STORE length total 8
+    FREE i
+    FREE j
+END

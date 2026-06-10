@@ -1,0 +1,246 @@
+BEHAVIOR parse-request
+
+DESCRIPTION
+  Parses raw HTTP request into structured components.
+  Extracts method, path, HTTP version, and headers.
+
+CONTRACT
+  INPUT raw bytes 8192
+  INPUT length int 8
+  OUTPUT method bytes 16
+  OUTPUT path bytes 2048
+  OUTPUT version bytes 16
+  OUTPUT headers bytes 4096
+  OUTPUT body_offset int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH 7785e01a
+
+IMPLEMENTATION
+  pos = ALLOC 8 int
+  STORE pos 0 8
+  space1 = ALLOC 8 int
+  STORE space1 0 8
+  space2 = ALLOC 8 int
+  STORE space2 0 8
+  crlf = ALLOC 8 int
+  STORE crlf 0 8
+  header_start = ALLOC 8 int
+  STORE header_start 0 8
+  header_end = ALLOC 8 int
+  STORE header_end 0 8
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  req_len = LOAD length 8
+
+  LABEL find_space1
+    s1 = LOAD space1 8
+    at_end = IGE s1 req_len 8
+    BRANCH at_end parse_error check_space1
+
+  LABEL check_space1
+    s1 = LOAD space1 8
+    byte = LOAD raw 1 s1
+    is_space = IEQ byte 32 1
+    BRANCH is_space found_space1 inc_space1
+
+  LABEL inc_space1
+    s1 = LOAD space1 8
+    new_s1 = IADD s1 1 8
+    STORE space1 new_s1 8
+    JUMP find_space1
+
+  LABEL found_space1
+    STORE i 0 8
+
+  LABEL copy_method
+    idx = LOAD i 8
+    s1 = LOAD space1 8
+    done_method = IGE idx s1 8
+    BRANCH done_method end_method copy_method_byte
+
+  LABEL copy_method_byte
+    idx = LOAD i 8
+    byte = LOAD raw 1 idx
+    STORE method byte 1 idx
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP copy_method
+
+  LABEL end_method
+    s1 = LOAD space1 8
+    STORE method 0 1 s1
+    s2_init = IADD s1 1 8
+    STORE space2 s2_init 8
+
+  LABEL find_space2
+    s2 = LOAD space2 8
+    at_end = IGE s2 req_len 8
+    BRANCH at_end parse_error check_space2
+
+  LABEL check_space2
+    s2 = LOAD space2 8
+    byte = LOAD raw 1 s2
+    is_space = IEQ byte 32 1
+    BRANCH is_space found_space2 inc_space2
+
+  LABEL inc_space2
+    s2 = LOAD space2 8
+    new_s2 = IADD s2 1 8
+    STORE space2 new_s2 8
+    JUMP find_space2
+
+  LABEL found_space2
+    s1 = LOAD space1 8
+    s2 = LOAD space2 8
+    path_start = IADD s1 1 8
+    path_len = ISUB s2 path_start 8
+    STORE i 0 8
+
+  LABEL copy_path
+    idx = LOAD i 8
+    done_path = IGE idx path_len 8
+    BRANCH done_path end_path copy_path_byte
+
+  LABEL copy_path_byte
+    idx = LOAD i 8
+    s1 = LOAD space1 8
+    src = IADD s1 1 8
+    src = IADD src idx 8
+    byte = LOAD raw 1 src
+    STORE path byte 1 idx
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP copy_path
+
+  LABEL end_path
+    STORE path 0 1 path_len
+    s2 = LOAD space2 8
+    crlf_init = IADD s2 1 8
+    STORE crlf crlf_init 8
+
+  LABEL find_crlf
+    cr = LOAD crlf 8
+    at_end = IGE cr req_len 8
+    BRANCH at_end parse_error check_crlf
+
+  LABEL check_crlf
+    cr = LOAD crlf 8
+    byte = LOAD raw 1 cr
+    is_cr = IEQ byte 13 1
+    BRANCH is_cr found_crlf inc_crlf
+
+  LABEL inc_crlf
+    cr = LOAD crlf 8
+    new_cr = IADD cr 1 8
+    STORE crlf new_cr 8
+    JUMP find_crlf
+
+  LABEL found_crlf
+    s2 = LOAD space2 8
+    cr = LOAD crlf 8
+    ver_start = IADD s2 1 8
+    ver_len = ISUB cr ver_start 8
+    STORE i 0 8
+
+  LABEL copy_version
+    idx = LOAD i 8
+    done_ver = IGE idx ver_len 8
+    BRANCH done_ver end_version copy_ver_byte
+
+  LABEL copy_ver_byte
+    idx = LOAD i 8
+    s2 = LOAD space2 8
+    src = IADD s2 1 8
+    src = IADD src idx 8
+    byte = LOAD raw 1 src
+    STORE version byte 1 idx
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP copy_version
+
+  LABEL end_version
+    STORE version 0 1 ver_len
+    cr = LOAD crlf 8
+    hdr_start = IADD cr 2 8
+    STORE header_start hdr_start 8
+    STORE header_end hdr_start 8
+
+  LABEL find_header_end
+    he = LOAD header_end 8
+    check_bound = IADD he 3 8
+    at_end = IGE check_bound req_len 8
+    BRANCH at_end headers_done check_double_crlf
+
+  LABEL check_double_crlf
+    he = LOAD header_end 8
+    b1 = LOAD raw 1 he
+    next1 = IADD he 1 8
+    b2 = LOAD raw 1 next1
+    next2 = IADD he 2 8
+    b3 = LOAD raw 1 next2
+    next3 = IADD he 3 8
+    b4 = LOAD raw 1 next3
+    is_cr1 = IEQ b1 13 1
+    is_lf1 = IEQ b2 10 1
+    is_cr2 = IEQ b3 13 1
+    is_lf2 = IEQ b4 10 1
+    c1 = AND is_cr1 is_lf1 1
+    c2 = AND is_cr2 is_lf2 1
+    is_end = AND c1 c2 1
+    BRANCH is_end headers_done inc_header_end
+
+  LABEL inc_header_end
+    he = LOAD header_end 8
+    new_he = IADD he 1 8
+    STORE header_end new_he 8
+    JUMP find_header_end
+
+  LABEL headers_done
+    hs = LOAD header_start 8
+    he = LOAD header_end 8
+    hdr_len = ISUB he hs 8
+    STORE i 0 8
+
+  LABEL copy_headers
+    idx = LOAD i 8
+    done_hdr = IGE idx hdr_len 8
+    BRANCH done_hdr end_headers copy_hdr_byte
+
+  LABEL copy_hdr_byte
+    idx = LOAD i 8
+    hs = LOAD header_start 8
+    src = IADD hs idx 8
+    byte = LOAD raw 1 src
+    STORE headers byte 1 idx
+    new_idx = IADD idx 1 8
+    STORE i new_idx 8
+    JUMP copy_headers
+
+  LABEL end_headers
+    STORE headers 0 1 hdr_len
+    he = LOAD header_end 8
+    body_start = IADD he 4 8
+    STORE body_offset body_start 8
+    STORE status 0 8
+    JUMP done
+
+  LABEL parse_error
+    STORE method 0 1 0
+    STORE path 0 1 0
+    STORE version 0 1 0
+    STORE headers 0 1 0
+    STORE status -1 8
+    STORE body_offset 0 8
+
+  LABEL done
+    FREE pos
+    FREE space1
+    FREE space2
+    FREE crlf
+    FREE header_start
+    FREE header_end
+    FREE i
+END

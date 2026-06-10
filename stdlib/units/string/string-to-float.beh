@@ -1,0 +1,78 @@
+BEHAVIOR string-to-float
+
+DESCRIPTION
+  Parses decimal text (the first len bytes) into an f64: optional leading '-',
+  integer digits, optional '.', fractional digits. Non-digit bytes (other than
+  a single '.') are skipped. No exponent support. result = sign * (intpart +
+  fracpart). string-to-float("3.140000")=3.14, ("-2.5")=-2.5, ("0")=0.
+
+CONTRACT
+  INPUT text bytes 64
+  INPUT len int 8
+  OUTPUT result float 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 73530508
+
+IMPLEMENTATION
+  lenv = LOAD len 8
+  ten = ITOF 10 8 8
+  zero = ITOF 0 8 8
+  one = ITOF 1 8 8
+  intacc = FADD zero zero 8
+  fracacc = FADD zero zero 8
+  divisor = FADD one zero 8
+  sign = 1
+  i = 0
+  c0 = LOAD text 1 0
+  c0 = AND c0 255 8
+  isminus = IEQ c0 45 8
+  BRANCH isminus setneg afterneg
+  LABEL setneg
+    sign = 0
+    i = 1
+  LABEL afterneg
+  seendot = 0
+  LABEL loop
+    iend = IGE i lenv 8
+    BRANCH iend fin body
+  LABEL body
+    c = LOAD text 1 i
+    c = AND c 255 8
+    isdot = IEQ c 46 8
+    BRANCH isdot setdot digit
+  LABEL setdot
+    seendot = 1
+    i = IADD i 1 8
+    JUMP loop
+  LABEL digit
+    dig = ISUB c 48 8
+    bad1 = ILT dig 0 8
+    bad2 = IGT dig 9 8
+    bad = OR bad1 bad2 8
+    BRANCH bad skipc usec
+  LABEL usec
+    digf = ITOF dig 8 8
+    BRANCH seendot fracadd intadd
+  LABEL intadd
+    t1 = FMUL intacc ten 8
+    intacc = FADD t1 digf 8
+    JUMP nextc
+  LABEL fracadd
+    t2 = FMUL fracacc ten 8
+    fracacc = FADD t2 digf 8
+    divisor = FMUL divisor ten 8
+  LABEL nextc
+  LABEL skipc
+    i = IADD i 1 8
+    JUMP loop
+  LABEL fin
+    fq = FDIV fracacc divisor 8
+    mag = FADD intacc fq 8
+    isneg = IEQ sign 0 8
+    BRANCH isneg negate store
+  LABEL negate
+    mag = FSUB zero mag 8
+  LABEL store
+    STORE result mag 8
+END

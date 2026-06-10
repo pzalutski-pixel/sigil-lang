@@ -1,0 +1,10 @@
+PROJECT kv-store
+VERSION 1.0.0
+
+DESCRIPTION
+  In-memory key-value store with get/set/delete operations, built on the
+  stdlib collections hash map (map-*) over a pattern-owned MEMORY buffer.
+
+ENTRY kvstore patterns/kvstore.pattern
+
+END

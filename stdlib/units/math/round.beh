@@ -1,0 +1,31 @@
+BEHAVIOR round
+
+DESCRIPTION
+  x rounded to the nearest integer, half away from zero, returned as an int.
+  Adds +0.5 (x>=0) or -0.5 (x<0) then truncates. round(2.5)=3, round(-2.5)=-3,
+  round(2.4)=2.
+
+CONTRACT
+  INPUT x float 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b6cfd5dd
+
+IMPLEMENTATION
+  xv = LOAD x 8
+  zero = ITOF 0 8 8
+  one = ITOF 1 8 8
+  two = ITOF 2 8 8
+  half = FDIV one two 8
+  neg = FLT xv zero 8
+  BRANCH neg negc posc
+  LABEL posc
+    adj = FADD xv half 8
+    JUMP rdone
+  LABEL negc
+    adj = FSUB xv half 8
+  LABEL rdone
+    r = FTOI adj 8 8
+    STORE result r 8
+END

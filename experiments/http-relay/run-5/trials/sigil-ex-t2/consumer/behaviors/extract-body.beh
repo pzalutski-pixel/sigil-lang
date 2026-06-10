@@ -1,0 +1,102 @@
+BEHAVIOR extract-body
+
+DESCRIPTION
+  Extracts the HTTP request body from a raw request buffer. Scans for the
+  CRLF CRLF (0x0D 0x0A 0x0D 0x0A) header/body separator; the body is the bytes
+  after it, to raw_len. If the separator is absent, body_len = 0.
+
+CONTRACT
+  INPUT raw bytes 65536
+  INPUT raw_len int 8
+  OUTPUT body bytes 65536
+  OUTPUT body_len int 8
+  GUARANTEES writes_output
+
+HASH 1e5f295a
+
+IMPLEMENTATION
+  i = ALLOC 8 int
+  STORE i 0 8
+  bstart = ALLOC 8 int
+  STORE bstart 0 8
+  found = ALLOC 8 int
+  STORE found 0 8
+
+  # Default outputs (in case no separator is found)
+  STORE body_len 0 8
+  STORE body 0 1 0
+
+  rlen = LOAD raw_len 8
+
+  LABEL scan
+    pos = LOAD i 8
+    bound = IADD pos 3 8
+    at_end = IGE bound rlen 8
+    BRANCH at_end finish check_sep
+
+  LABEL check_sep
+    pos = LOAD i 8
+    p1 = pos
+    b1 = LOAD raw 1 p1
+    o2 = IADD pos 1 8
+    b2 = LOAD raw 1 o2
+    o3 = IADD pos 2 8
+    b3 = LOAD raw 1 o3
+    o4 = IADD pos 3 8
+    b4 = LOAD raw 1 o4
+    c1 = IEQ b1 13 1
+    c2 = IEQ b2 10 1
+    c3 = IEQ b3 13 1
+    c4 = IEQ b4 10 1
+    a1 = AND c1 c2 1
+    a2 = AND c3 c4 1
+    is_sep = AND a1 a2 1
+    BRANCH is_sep got_sep advance
+
+  LABEL advance
+    pos = LOAD i 8
+    np = IADD pos 1 8
+    STORE i np 8
+    JUMP scan
+
+  LABEL got_sep
+    pos = LOAD i 8
+    bs = IADD pos 4 8
+    STORE bstart bs 8
+    STORE found 1 8
+
+  LABEL copy_start
+    STORE i 0 8
+
+  LABEL copy_loop
+    fnd = LOAD found 8
+    is_found = IEQ fnd 1 8
+    BRANCH is_found do_copy finish
+
+  LABEL do_copy
+    idx = LOAD i 8
+    bs = LOAD bstart 8
+    src = IADD bs idx 8
+    rl2 = LOAD raw_len 8
+    done = IGE src rl2 8
+    BRANCH done copy_done copy_byte
+
+  LABEL copy_byte
+    idx = LOAD i 8
+    bs = LOAD bstart 8
+    src = IADD bs idx 8
+    b = LOAD raw 1 src
+    STORE body b 1 idx
+    nidx = IADD idx 1 8
+    STORE i nidx 8
+    JUMP do_copy
+
+  LABEL copy_done
+    idx = LOAD i 8
+    STORE body_len idx 8
+
+  LABEL finish
+    FREE i
+    FREE bstart
+    FREE found
+END

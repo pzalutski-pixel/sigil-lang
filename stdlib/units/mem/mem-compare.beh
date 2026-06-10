@@ -1,0 +1,53 @@
+BEHAVIOR mem-compare
+
+DESCRIPTION
+  Lexicographic comparison of the first len bytes of a and b, as unsigned
+  bytes (memcmp semantics, reduced to a sign): -1 if a < b, 1 if a > b, 0 if
+  the regions are equal.
+
+CONTRACT
+  INPUT a bytes 65536
+  INPUT b bytes 65536
+  INPUT len int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 59bb6f70
+
+IMPLEMENTATION
+  lenv = LOAD len 8
+  i = 0
+
+  LABEL loop
+    atend = IGE i lenv 8
+    BRANCH atend equal cont
+
+  LABEL cont
+    ab = LOAD a 1 i
+    au = AND ab 255 8
+    bb = LOAD b 1 i
+    bu = AND bb 255 8
+    lt = ILT au bu 8
+    BRANCH lt less notlt
+
+  LABEL less
+    STORE result -1 8
+    JUMP done
+
+  LABEL notlt
+    gt = IGT au bu 8
+    BRANCH gt greater nextb
+
+  LABEL greater
+    STORE result 1 8
+    JUMP done
+
+  LABEL nextb
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL equal
+    STORE result 0 8
+
+  LABEL done
+END

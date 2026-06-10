@@ -1,0 +1,101 @@
+BEHAVIOR extract-http-body
+
+DESCRIPTION
+  Extracts the body from an HTTP request.
+  Finds \r\n\r\n separator and copies body to output.
+  Searches byte by byte for the pattern.
+
+CONTRACT
+  INPUT request bytes 65536
+  INPUT request_len int 8
+  OUTPUT body bytes 65536
+  OUTPUT body_len int 8
+  GUARANTEES writes_output
+
+HASH 7dc6a1b8
+
+IMPLEMENTATION
+  # Initialize body with a zero byte at start (ensures output is written)
+  STORE body 0 1 0
+
+  # Search for \r\n\r\n (0x0D 0x0A 0x0D 0x0A)
+  # Pattern bytes: 13, 10, 13, 10
+  len = LOAD request_len 8
+  idx = ALLOC 8 int
+  STORE idx 0 8
+  found_pos = ALLOC 8 int
+  STORE found_pos -1 8
+
+  LABEL search_loop
+    i = LOAD idx 8
+    # Check if we have at least 4 more bytes
+    remaining = ISUB len i 8
+    check = ILT remaining 4 8
+    BRANCH check search_done check_pattern
+
+  LABEL check_pattern
+    # Load 4 bytes starting at i
+    b0 = LOAD request 1 i
+    i1 = IADD i 1 8
+    b1 = LOAD request 1 i1
+    i2 = IADD i 2 8
+    b2 = LOAD request 1 i2
+    i3 = IADD i 3 8
+    b3 = LOAD request 1 i3
+
+    # Check if b0=13, b1=10, b2=13, b3=10
+    c0 = IEQ b0 13 8
+    c1 = IEQ b1 10 8
+    c2 = IEQ b2 13 8
+    c3 = IEQ b3 10 8
+
+    # All must match
+    m01 = AND c0 c1 8
+    m23 = AND c2 c3 8
+    match = AND m01 m23 8
+    BRANCH match found_it next_idx
+
+  LABEL found_it
+    STORE found_pos i 8
+    JUMP search_done
+
+  LABEL next_idx
+    next_i = IADD i 1 8
+    STORE idx next_i 8
+    JUMP search_loop
+
+  LABEL search_done
+    # found_pos has the position of \r\n\r\n, or -1 if not found
+    pos = LOAD found_pos 8
+
+    # Body starts at pos + 4
+    body_start = IADD pos 4 8
+
+    # Body length = total_len - body_start
+    blen = ISUB len body_start 8
+
+    # Store body_len
+    STORE body_len blen 8
+
+    # Copy body bytes
+    copy_idx = ALLOC 8 int
+    STORE copy_idx 0 8
+
+  LABEL copy_loop
+    ci = LOAD copy_idx 8
+    done = IGE ci blen 8
+    BRANCH done copy_done copy_byte
+
+  LABEL copy_byte
+    src_offset = IADD body_start ci 8
+    byte_val = LOAD request 1 src_offset
+    STORE body byte_val 1 ci
+    next_ci = IADD ci 1 8
+    STORE copy_idx next_ci 8
+    JUMP copy_loop
+
+  LABEL copy_done
+    FREE idx
+    FREE found_pos
+    FREE copy_idx
+END

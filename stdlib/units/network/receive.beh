@@ -1,0 +1,18 @@
+BEHAVIOR receive
+
+DESCRIPTION
+  Receives data from a connected socket.
+  Blocks until data available or connection closed.
+  Returns number of bytes received.
+  Returns 0 on connection closed, negative on error.
+
+CONTRACT
+  INPUT fd int 8
+  INPUT max_length int 8
+  OUTPUT buffer bytes 65536
+  OUTPUT bytes_received int 8
+  GUARANTEES writes_output
+
+HASH 2ae7614b
+
+NATIVE

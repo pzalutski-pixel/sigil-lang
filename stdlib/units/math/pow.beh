@@ -1,0 +1,32 @@
+BEHAVIOR pow
+
+DESCRIPTION
+  Integer exponentiation: base raised to a non-negative exponent.
+  exp <= 0 yields 1. Uses a simple multiply loop; wraps on overflow (no check).
+
+CONTRACT
+  INPUT base int 8
+  INPUT exp int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 043e5cdd
+
+IMPLEMENTATION
+  basev = LOAD base 8
+  expv = LOAD exp 8
+  acc = 1
+  i = 0
+
+  LABEL loop
+    done = IGE i expv 8
+    BRANCH done finish body
+
+  LABEL body
+    acc = IMUL acc basev 8
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL finish
+    STORE result acc 8
+END

@@ -1,0 +1,147 @@
+BEHAVIOR build-request
+
+DESCRIPTION
+  Builds a minimal HTTP/1.0 POST request whose body is the first body_len bytes
+  of body. Emits "POST / HTTP/1.0\r\nContent-Length: <body_len>\r\n\r\n" followed
+  by the body bytes into result, with the total byte count in length. body_len
+  is assumed <= 99999 (formatted with up to 5 decimal digits, no leading zeros).
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 90c2acb6
+
+IMPLEMENTATION
+  SCOPE
+  op = ALLOC 8 int
+  STORE op 0 8
+
+  # --- "POST / HTTP/1.0\r\n" (17 bytes) ---
+  STORE result 80 1 0
+  STORE result 79 1 1
+  STORE result 83 1 2
+  STORE result 84 1 3
+  STORE result 32 1 4
+  STORE result 47 1 5
+  STORE result 32 1 6
+  STORE result 72 1 7
+  STORE result 84 1 8
+  STORE result 84 1 9
+  STORE result 80 1 10
+  STORE result 47 1 11
+  STORE result 49 1 12
+  STORE result 46 1 13
+  STORE result 48 1 14
+  STORE result 13 1 15
+  STORE result 10 1 16
+
+  # --- "Content-Length: " (16 bytes) at offset 17 ---
+  STORE result 67 1 17
+  STORE result 111 1 18
+  STORE result 110 1 19
+  STORE result 116 1 20
+  STORE result 101 1 21
+  STORE result 110 1 22
+  STORE result 116 1 23
+  STORE result 45 1 24
+  STORE result 76 1 25
+  STORE result 101 1 26
+  STORE result 110 1 27
+  STORE result 103 1 28
+  STORE result 116 1 29
+  STORE result 104 1 30
+  STORE result 58 1 31
+  STORE result 32 1 32
+  STORE op 33 8
+
+  # --- decimal of body_len (up to 5 digits) into a scratch, then reversed ---
+  scratch = ALLOC 16 bytes
+  nlen = ALLOC 8 int
+  STORE nlen 0 8
+  n = ALLOC 8 int
+  bl = LOAD body_len 8
+  STORE n bl 8
+
+  # special-case zero
+  is_zero = IEQ bl 0 8
+  BRANCH is_zero num_zero num_loop
+
+  LABEL num_zero
+    STORE scratch 48 1 0
+    STORE nlen 1 8
+    JUMP num_done
+
+  LABEL num_loop
+    nv = LOAD n 8
+    nz = IGT nv 0 8
+    BRANCH nz num_digit num_done
+  LABEL num_digit
+    d = IMOD nv 10 8
+    dc = IADD d 48 8
+    nlv = LOAD nlen 8
+    STORE scratch dc 1 nlv
+    nln = IADD nlv 1 8
+    STORE nlen nln 8
+    nnext = IDIV nv 10 8
+    STORE n nnext 8
+    JUMP num_loop
+
+  LABEL num_done
+    # emit digits in reverse (scratch holds least-significant first)
+    di = ALLOC 8 int
+    cnt = LOAD nlen 8
+    dstart = ISUB cnt 1 8
+    STORE di dstart 8
+  LABEL emit_digits
+    div = LOAD di 8
+    has = IGE div 0 8
+    BRANCH has emit_one digits_done
+  LABEL emit_one
+    ch = LOAD scratch 1 div
+    opv = LOAD op 8
+    STORE result ch 1 opv
+    opn = IADD opv 1 8
+    STORE op opn 8
+    dip = ISUB div 1 8
+    STORE di dip 8
+    JUMP emit_digits
+  LABEL digits_done
+
+  # --- "\r\n\r\n" (4 bytes) ---
+  opv2 = LOAD op 8
+  STORE result 13 1 opv2
+  o1 = IADD opv2 1 8
+  STORE result 10 1 o1
+  o2 = IADD opv2 2 8
+  STORE result 13 1 o2
+  o3 = IADD opv2 3 8
+  STORE result 10 1 o3
+  opv3 = IADD opv2 4 8
+  STORE op opv3 8
+
+  # --- append body bytes ---
+  sp = ALLOC 8 int
+  STORE sp 0 8
+  blen = LOAD body_len 8
+  LABEL body_loop
+    spv = LOAD sp 8
+    more = ILT spv blen 8
+    BRANCH more body_copy body_done
+  LABEL body_copy
+    cb = LOAD body 1 spv
+    opc = LOAD op 8
+    STORE result cb 1 opc
+    opcn = IADD opc 1 8
+    STORE op opcn 8
+    spn = IADD spv 1 8
+    STORE sp spn 8
+    JUMP body_loop
+  LABEL body_done
+    total = LOAD op 8
+    STORE length total 8
+  END_SCOPE
+END

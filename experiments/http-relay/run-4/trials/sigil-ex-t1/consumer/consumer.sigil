@@ -1,0 +1,10 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  HTTP file relay consumer. Listens on TCP port 9821 for one HTTP POST,
+  prepends a timestamp and " PROCESSED BY CONSUMER\n" to the body, and writes
+  the result to output.txt.
+
+ENTRY
+  CALL consumer-main -> status
+END_EXECUTABLE

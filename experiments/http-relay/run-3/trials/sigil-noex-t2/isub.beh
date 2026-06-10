@@ -1,0 +1,16 @@
+BEHAVIOR isub
+DESCRIPTION
+  Subtracts b from a (8-byte ints) and returns the difference. Pure helper so
+  compositions can derive a length without computing inline.
+CONTRACT
+  INPUT a int 8
+  INPUT b int 8
+  OUTPUT diff int 8
+  GUARANTEES pure no_alloc writes_output
+HASH e54f8c17
+IMPLEMENTATION
+  va = LOAD a 8
+  vb = LOAD b 8
+  d = ISUB va vb 8
+  STORE diff d 8
+END

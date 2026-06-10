@@ -1,0 +1,11 @@
+BEHAVIOR pc-print-wait-cons
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Waiting for consumer..."
+  CALL println msg
+END

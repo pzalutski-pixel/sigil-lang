@@ -1,0 +1,57 @@
+BEHAVIOR consumer-main
+
+DESCRIPTION
+  Listens on port 9819 for one HTTP POST, prepends timestamp and
+  PROCESSED BY CONSUMER line to the body, writes result to output.txt.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c bind@697435f5 listen@95b7eb35 accept@e88849be receive@2ae7614b now@cee78134 format-time@83ebda2d concat3@594aea6a make-addr-9819@00f67ec4 extract-body@1e5f295a open@31f81967 write@874767ff close@d4ba30e5 close-socket@d4ba30e5
+  GUARANTEES writes_output
+
+HASH 7852ddc2
+
+COMPOSITION
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Bind to port 9819
+  addr_result = CALL make-addr-9819
+  bind_result = CALL bind sock_fd addr_result.addr 16
+
+  # Listen with backlog 10
+  listen_result = CALL listen sock_fd 10
+
+  # Accept one connection
+  accept_result = CALL accept sock_fd
+  client_fd = accept_result.client_fd
+
+  # Receive the request
+  recv_result = CALL receive client_fd 65536
+
+  # Extract the HTTP body from the raw request
+  body_result = CALL extract-body recv_result.buffer recv_result.bytes_received
+
+  # Build timestamp string
+  time_result = CALL now
+  fmt_result = CALL format-time time_result.timestamp
+
+  # Suffix: " PROCESSED BY CONSUMER\n"
+  suffix = " PROCESSED BY CONSUMER\n"
+
+  # Assemble: timestamp + suffix + body
+  out_result = CALL concat3 fmt_result.formatted fmt_result.length suffix 23 body_result.body body_result.body_len
+
+  # Write to output.txt (flags = 3 = write + create)
+  path = "output.txt"
+  open_result = CALL open path 3
+  write_result = CALL write open_result.fd out_result.out out_result.out_len
+  close_result = CALL close open_result.fd
+
+  # Close sockets
+  cc = CALL close-socket client_fd
+  cs = CALL close-socket sock_fd
+
+  SET status 0
+END

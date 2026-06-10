@@ -1,0 +1,171 @@
+BEHAVIOR build-request
+
+DESCRIPTION
+  Builds a minimal HTTP/1.0 POST request whose body is the first body_len
+  bytes of body. Emits:
+    POST / HTTP/1.0\r\nHost: localhost\r\nContent-Length: <n>\r\n\r\n<body>
+  Content-Length is written as decimal digits. req receives the full request,
+  req_len its byte count.
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT req bytes 65536
+  OUTPUT req_len int 8
+  GUARANTEES writes_output
+
+HASH cc30d563
+
+IMPLEMENTATION
+  # Write the fixed prefix: "POST / HTTP/1.0\r\nHost: localhost\r\nContent-Length: "
+  # byte-by-byte via STORE.
+  STORE req 80 1 0      # P
+  STORE req 79 1 1      # O
+  STORE req 83 1 2      # S
+  STORE req 84 1 3      # T
+  STORE req 32 1 4      # space
+  STORE req 47 1 5      # /
+  STORE req 32 1 6      # space
+  STORE req 72 1 7      # H
+  STORE req 84 1 8      # T
+  STORE req 84 1 9      # T
+  STORE req 80 1 10     # P
+  STORE req 47 1 11     # /
+  STORE req 49 1 12     # 1
+  STORE req 46 1 13     # .
+  STORE req 48 1 14     # 0
+  STORE req 13 1 15     # \r
+  STORE req 10 1 16     # \n
+  STORE req 72 1 17     # H
+  STORE req 111 1 18    # o
+  STORE req 115 1 19    # s
+  STORE req 116 1 20    # t
+  STORE req 58 1 21     # :
+  STORE req 32 1 22     # space
+  STORE req 108 1 23    # l
+  STORE req 111 1 24    # o
+  STORE req 99 1 25     # c
+  STORE req 97 1 26     # a
+  STORE req 108 1 27    # l
+  STORE req 104 1 28    # h
+  STORE req 111 1 29    # o
+  STORE req 115 1 30    # s
+  STORE req 116 1 31    # t
+  STORE req 13 1 32     # \r
+  STORE req 10 1 33     # \n
+  STORE req 67 1 34     # C
+  STORE req 111 1 35    # o
+  STORE req 110 1 36    # n
+  STORE req 116 1 37    # t
+  STORE req 101 1 38    # e
+  STORE req 110 1 39    # n
+  STORE req 116 1 40    # t
+  STORE req 45 1 41     # -
+  STORE req 76 1 42     # L
+  STORE req 101 1 43    # e
+  STORE req 110 1 44    # n
+  STORE req 103 1 45    # g
+  STORE req 116 1 46    # t
+  STORE req 104 1 47    # h
+  STORE req 58 1 48     # :
+  STORE req 32 1 49     # space
+
+  # Now write Content-Length value (body_len) as decimal digits starting at
+  # offset 50. We build digits in a scratch buffer (reversed) then copy.
+  blen = LOAD body_len 8
+  scratch = ALLOC 32 bytes
+  # Handle value 0 specially.
+  ndigits = ALLOC 8 int
+  STORE ndigits 0 8
+  rem = ALLOC 8 int
+  STORE rem blen 8
+
+  zero = IEQ blen 0 8
+  BRANCH zero write-zero start-digits
+
+  LABEL write-zero
+    STORE scratch 48 1 0
+    STORE ndigits 1 8
+    JUMP after-digits
+
+  LABEL start-digits
+  LABEL digit-loop
+    rv = LOAD rem 8
+    done = IEQ rv 0 8
+    BRANCH done after-digits do-digit
+
+  LABEL do-digit
+    rv2 = LOAD rem 8
+    d = IMOD rv2 10 8
+    nd = LOAD ndigits 8
+    ch = IADD d 48 8
+    STORE scratch ch 1 nd
+    nd2 = IADD nd 1 8
+    STORE ndigits nd2 8
+    q = IDIV rv2 10 8
+    STORE rem q 8
+    JUMP digit-loop
+
+  LABEL after-digits
+  # Copy digits from scratch (reversed) into req at offset 50, in correct order.
+  ndf = LOAD ndigits 8
+  # i iterates 0..ndf; source index = ndf-1-i; dest = 50+i
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  LABEL copy-loop
+    iv = LOAD i 8
+    cdone = IGE iv ndf 8
+    BRANCH cdone copy-done copy-body
+
+  LABEL copy-body
+    iv2 = LOAD i 8
+    srcidx = ISUB ndf 1 8
+    srcidx2 = ISUB srcidx iv2 8
+    cbyte = LOAD scratch 1 srcidx2
+    destidx = IADD 50 iv2 8
+    STORE req cbyte 1 destidx
+    iv3 = IADD iv2 1 8
+    STORE i iv3 8
+    JUMP copy-loop
+
+  LABEL copy-done
+  # pos = 50 + ndf
+  pos = IADD 50 ndf 8
+  # Write \r\n\r\n
+  STORE req 13 1 pos
+  pos1 = IADD pos 1 8
+  STORE req 10 1 pos1
+  pos2 = IADD pos 2 8
+  STORE req 13 1 pos2
+  pos3 = IADD pos 3 8
+  STORE req 10 1 pos3
+  bodystart = IADD pos 4 8
+
+  # Copy body bytes into req at bodystart.
+  j = ALLOC 8 int
+  STORE j 0 8
+
+  LABEL body-loop
+    jv = LOAD j 8
+    bdone = IGE jv blen 8
+    BRANCH bdone body-done body-copy
+
+  LABEL body-copy
+    jv2 = LOAD j 8
+    bb = LOAD body 1 jv2
+    bdest = IADD bodystart jv2 8
+    STORE req bb 1 bdest
+    jv3 = IADD jv2 1 8
+    STORE j jv3 8
+    JUMP body-loop
+
+  LABEL body-done
+  total = IADD bodystart blen 8
+  STORE req_len total 8
+  FREE scratch
+  FREE ndigits
+  FREE rem
+  FREE i
+  FREE j
+END

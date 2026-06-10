@@ -1,0 +1,35 @@
+BEHAVIOR producer-main
+
+DESCRIPTION
+  Producer: reads input.txt and POSTs its contents to localhost:9819
+  as the body of a minimal HTTP/1.1 POST request.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES open@31f81967 read@82ce10f8 close@d4ba30e5 concat3@594aea6a socket@0fec0e0c make-addr-9819@00f67ec4 connect@697435f5 send@8c6f3cb7 close-socket@d4ba30e5
+  GUARANTEES writes_output
+
+HASH c71432fb
+
+COMPOSITION
+  # Read input.txt (flags = 0 = read)
+  path = "input.txt"
+  open_result = CALL open path 0
+  read_result = CALL read open_result.fd 65536
+  close_result = CALL close open_result.fd
+
+  # Build minimal HTTP POST request
+  header = "POST / HTTP/1.1\r\nHost: localhost\r\n\r\n"
+  empty = ""
+  req_result = CALL concat3 header 36 read_result.buffer read_result.bytes_read empty 0
+
+  # Connect to localhost:9819 and send
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+  addr_result = CALL make-addr-9819
+  conn_result = CALL connect sock_fd addr_result.addr 16
+  send_result = CALL send sock_fd req_result.out req_result.out_len
+  cs = CALL close-socket sock_fd
+
+  SET status 0
+END

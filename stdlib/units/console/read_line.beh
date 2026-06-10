@@ -1,0 +1,17 @@
+BEHAVIOR read_line
+
+DESCRIPTION
+  Reads a line from standard input (stdin).
+  Reads until newline (0x0A) or max_length reached.
+  Newline is included in output if present.
+  Returns number of bytes read, 0 on EOF, negative on error.
+
+CONTRACT
+  INPUT max_length int 8
+  OUTPUT buffer bytes 65536
+  OUTPUT bytes_read int 8
+  GUARANTEES writes_output
+
+HASH 84aa1732
+
+NATIVE

@@ -1,0 +1,136 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Assembles the consumer output. Scans the received HTTP request for the
+  blank-line separator (CRLFCRLF), takes everything after it as the body, and
+  writes: the 19-byte timestamp, then " PROCESSED BY CONSUMER\n", then the body,
+  into result with its byte count in length. If no CRLFCRLF is found the whole
+  request is treated as the body.
+
+CONTRACT
+  INPUT request bytes 65536
+  INPUT req_len int 8
+  INPUT timestamp bytes 65536
+  OUTPUT result bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH a7db7e40
+
+IMPLEMENTATION
+  SCOPE
+  # --- find body start: index just past the first CRLFCRLF ---
+  body_start = ALLOC 8 int
+  STORE body_start 0 8
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  LABEL scan
+    iv = LOAD i 8
+    # need 4 bytes available: i+3 < req_len  =>  i+4 <= req_len
+    iv4 = IADD iv 4 8
+    rl = LOAD req_len 8
+    room = ILE iv4 rl 8
+    BRANCH room scan_check scan_done
+
+  LABEL scan_check
+    b0 = LOAD request 1 iv
+    o1 = IADD iv 1 8
+    b1 = LOAD request 1 o1
+    o2 = IADD iv 2 8
+    b2 = LOAD request 1 o2
+    o3 = IADD iv 3 8
+    b3 = LOAD request 1 o3
+    is_cr0 = IEQ b0 13 1
+    is_lf1 = IEQ b1 10 1
+    is_cr2 = IEQ b2 13 1
+    is_lf2 = IEQ b3 10 1
+    m01 = AND is_cr0 is_lf1 8
+    m23 = AND is_cr2 is_lf2 8
+    matched = AND m01 m23 8
+    BRANCH matched scan_found scan_next
+
+  LABEL scan_next
+    inext = IADD iv 1 8
+    STORE i inext 8
+    JUMP scan
+
+  LABEL scan_found
+    bs = IADD iv 4 8
+    STORE body_start bs 8
+    JUMP scan_emit
+
+  LABEL scan_done
+    # no separator found: body is the whole request
+    rl2 = LOAD req_len 8
+    STORE body_start 0 8
+    JUMP scan_emit
+
+  LABEL scan_emit
+    # --- write timestamp (19 bytes) into result[0..19] ---
+    w = ALLOC 8 int
+    STORE w 0 8
+    LABEL ts_loop
+      wv = LOAD w 8
+      done_ts = IGE wv 19 8
+      BRANCH done_ts ts_done ts_body
+    LABEL ts_body
+      tb = LOAD timestamp 1 wv
+      STORE result tb 1 wv
+      wn = IADD wv 1 8
+      STORE w wn 8
+      JUMP ts_loop
+    LABEL ts_done
+
+    # --- write " PROCESSED BY CONSUMER\n" (23 bytes) at result[19..42] ---
+    STORE result 32 1 19
+    STORE result 80 1 20
+    STORE result 82 1 21
+    STORE result 79 1 22
+    STORE result 67 1 23
+    STORE result 69 1 24
+    STORE result 83 1 25
+    STORE result 83 1 26
+    STORE result 69 1 27
+    STORE result 68 1 28
+    STORE result 32 1 29
+    STORE result 66 1 30
+    STORE result 89 1 31
+    STORE result 32 1 32
+    STORE result 67 1 33
+    STORE result 79 1 34
+    STORE result 78 1 35
+    STORE result 83 1 36
+    STORE result 85 1 37
+    STORE result 77 1 38
+    STORE result 69 1 39
+    STORE result 82 1 40
+    STORE result 10 1 41
+
+    # --- append body: request[body_start .. req_len] at result[42 ..] ---
+    bsv = LOAD body_start 8
+    rlen = LOAD req_len 8
+    op = ALLOC 8 int
+    STORE op 42 8
+    sp = ALLOC 8 int
+    STORE sp bsv 8
+
+    LABEL body_loop
+      spv = LOAD sp 8
+      more = ILT spv rlen 8
+      BRANCH more body_copy body_emit
+    LABEL body_copy
+      cb = LOAD request 1 spv
+      opv = LOAD op 8
+      STORE result cb 1 opv
+      opn = IADD opv 1 8
+      STORE op opn 8
+      spn = IADD spv 1 8
+      STORE sp spn 8
+      JUMP body_loop
+
+    LABEL body_emit
+      total = LOAD op 8
+      STORE length total 8
+  END_SCOPE
+END

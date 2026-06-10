@@ -1,0 +1,53 @@
+BEHAVIOR crc32
+
+DESCRIPTION
+  CRC-32 (IEEE 802.3, polynomial 0xEDB88320) of the first len bytes of data,
+  bit-by-bit (no table). Returns the 32-bit checksum. crc32("") = 0,
+  crc32("123456789") = 0xCBF43926 = 3421780262.
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT len int 8
+  OUTPUT crc int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 02f4f32e
+
+IMPLEMENTATION
+  lenv = LOAD len 8
+  c = 4294967295
+  i = 0
+
+  LABEL loop
+    done = IGE i lenv 8
+    BRANCH done fin body
+  LABEL body
+    b = LOAD data 1 i
+    bu = AND b 255 8
+    c = XOR c bu 8
+    k = 0
+  LABEL bits
+    kdone = IGE k 8 8
+    BRANCH kdone bitsdone bit
+  LABEL bit
+    lsb = AND c 1 8
+    islsb = IEQ lsb 1 8
+    BRANCH islsb shiftxor shiftonly
+  LABEL shiftxor
+    sh = SHR c 1 8
+    c = XOR sh 3988292384 8
+    JUMP nextbit
+  LABEL shiftonly
+    c = SHR c 1 8
+  LABEL nextbit
+    k = IADD k 1 8
+    JUMP bits
+  LABEL bitsdone
+    i = IADD i 1 8
+    JUMP loop
+
+  LABEL fin
+    cf = XOR c 4294967295 8
+    out = AND cf 4294967295 8
+    STORE crc out 8
+END

@@ -1,0 +1,25 @@
+BEHAVIOR copy-file
+
+DESCRIPTION
+  Copies source file to destination using the stdlib io convenience behaviors
+  (read-file-all + write-file-all) instead of a hand-rolled open/read/write/
+  close loop. bytes_copied = bytes written (>= 0 on success; write-file-all
+  returns a negative count if the destination cannot be written). A missing
+  source reads as empty (the runtime guards a bad fd), so it copies 0 bytes.
+
+CONTRACT
+  INPUT source_path string
+  INPUT dest_path string
+  OUTPUT bytes_copied int 8
+
+  REQUIRES read-file-all@bf59f1e1 write-file-all@b17d9aa8
+
+  GUARANTEES writes_output
+
+HASH fabb7c66
+
+COMPOSITION
+  rd = CALL read-file-all source_path
+  wr = CALL write-file-all dest_path rd.data rd.length
+  SET bytes_copied wr.bytes_written
+END

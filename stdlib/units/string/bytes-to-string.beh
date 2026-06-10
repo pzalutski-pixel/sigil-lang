@@ -1,0 +1,24 @@
+BEHAVIOR bytes-to-string
+
+DESCRIPTION
+  Produces a `string` (length-prefixed, self-describing) from the first len
+  bytes of src, using the caller-owned buffer buf as its backing store. The
+  composition half: string-pack writes [len][content] into buf, then SET makes
+  the string output point at buf. SOUND ONLY while buf outlives the returned
+  string (the caller owns buf, e.g. pattern MEMORY) -- exactly the collections
+  lifetime model. buf needs len+8 bytes.
+
+CONTRACT
+  INPUT src bytes 65536
+  INPUT len int 8
+  INPUT buf bytes 65544
+  OUTPUT str string
+  REQUIRES string-pack@4bb1e8d7
+  GUARANTEES writes_output
+
+HASH 8b5b6eaf
+
+COMPOSITION
+  CALL string-pack src len buf
+  SET str buf
+END

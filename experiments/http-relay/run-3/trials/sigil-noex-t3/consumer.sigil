@@ -1,0 +1,53 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Listens on port 9813 for an HTTP POST, prepends a timestamp and a
+  "PROCESSED BY CONSUMER" line to the body, and writes output.txt.
+
+ENTRY
+  sock = CALL socket 2 1
+  a = CALL build-addr
+  bnd = CALL bind sock.fd a.addr a.addr_len
+  DISCARD bnd.status
+  lis = CALL listen sock.fd 1
+  DISCARD lis.status
+
+  acc = CALL accept sock.fd
+  DISCARD acc.client_addr
+  DISCARD acc.addr_len
+  rcv = CALL receive acc.client_fd 65536
+
+  # current timestamp -> "YYYY-MM-DD HH:MM:SS"
+  t = CALL now
+  ft = CALL format-time t.timestamp
+  DISCARD ft.length
+
+  # literal header piece: " PROCESSED BY CONSUMER\n"
+  hdrstr = " PROCESSED BY CONSUMER\n"
+  hb = CALL string-to-bytes hdrstr
+  DISCARD hb.length
+
+  # assemble: out = ts(19) + " PROCESSED BY CONSUMER\n"(23) + body
+  mb = CALL make-buffer
+  c1 = CALL copy ft.formatted 0 mb.buf 0 19
+  DISCARD c1.bytes_copied
+  c2 = CALL copy hb.data 0 mb.buf 19 23
+  DISCARD c2.bytes_copied
+  c3 = CALL copy rcv.buffer 0 mb.buf 42 rcv.bytes_received
+  DISCARD c3.bytes_copied
+
+  tl = CALL total-len rcv.bytes_received
+
+  # write output.txt (flags: write=1 | create=2 = 3)
+  opath = "output.txt"
+  of = CALL open opath 3
+  wr = CALL write of.fd mb.buf tl.total
+  DISCARD wr.bytes_written
+  cf = CALL close of.fd
+  DISCARD cf.status
+
+  cc = CALL close-socket acc.client_fd
+  DISCARD cc.status
+  cs = CALL close-socket sock.fd
+  DISCARD cs.status
+END_EXECUTABLE

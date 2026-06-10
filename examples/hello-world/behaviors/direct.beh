@@ -1,0 +1,17 @@
+BEHAVIOR direct
+
+DESCRIPTION
+  Hello world using stdlib println.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES println@a273ebb3
+  GUARANTEES writes_output
+
+HASH f9de110d
+
+COMPOSITION
+  msg = "Hello, World!"
+  CALL println msg
+  SET status 0
+END

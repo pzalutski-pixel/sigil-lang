@@ -1,0 +1,26 @@
+BEHAVIOR make-sockaddr
+DESCRIPTION
+  Builds a sockaddr_in (IPv4) buffer for the given port on 127.0.0.1.
+  family=AF_INET(2) at bytes 0-1 (host order), port big-endian at bytes 2-3,
+  IP 127.0.0.1 at bytes 4-7 (big-endian network order). addr_len=16.
+CONTRACT
+  INPUT port int 8
+  OUTPUT addr bytes 128
+  OUTPUT addr_len int 8
+  GUARANTEES writes_output
+HASH 77eb2709
+IMPLEMENTATION
+  STORE addr 2 2 0
+  pv = LOAD port 8
+  lo = AND pv 255 8
+  hi = SHR pv 8 8
+  hi = AND hi 255 8
+  lo_shift = SHL lo 8 8
+  netport = OR lo_shift hi 8
+  STORE addr netport 2 2
+  STORE addr 127 1 4
+  STORE addr 0 1 5
+  STORE addr 0 1 6
+  STORE addr 1 1 7
+  STORE addr_len 16 8
+END

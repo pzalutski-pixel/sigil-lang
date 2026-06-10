@@ -1,0 +1,92 @@
+BEHAVIOR extract-body
+
+DESCRIPTION
+  Finds the HTTP body in a raw request buffer.
+  The body starts after the first CRLF CRLF (0x0D 0x0A 0x0D 0x0A).
+  Copies the body bytes to out and writes body_len.
+  If no header terminator is found, returns the whole buffer.
+
+CONTRACT
+  INPUT raw bytes 65536
+  INPUT raw_len int 8
+  OUTPUT body bytes 65536
+  OUTPUT body_len int 8
+  GUARANTEES writes_output
+
+HASH 1e5f295a
+
+IMPLEMENTATION
+  i = ALLOC 8 int
+  start = ALLOC 8 int
+  STORE start 0 8
+  STORE i 0 8
+
+  # ensure body is written on all paths
+  STORE body 0 1 0
+
+  rl = LOAD raw_len 8
+
+  # scan for CRLF CRLF
+  LABEL scan
+    idx = LOAD i 8
+    bound = IADD idx 3 8
+    past = IGE bound rl 8
+    BRANCH past no_header check
+  LABEL check
+    idx = LOAD i 8
+    b1 = LOAD raw 1 idx
+    n1 = IADD idx 1 8
+    b2 = LOAD raw 1 n1
+    n2 = IADD idx 2 8
+    b3 = LOAD raw 1 n2
+    n3 = IADD idx 3 8
+    b4 = LOAD raw 1 n3
+    c1 = IEQ b1 13 1
+    c2 = IEQ b2 10 1
+    c3 = IEQ b3 13 1
+    c4 = IEQ b4 10 1
+    p1 = AND c1 c2 1
+    p2 = AND c3 c4 1
+    found = AND p1 p2 1
+    BRANCH found got_header inc
+  LABEL inc
+    idx = LOAD i 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP scan
+
+  LABEL no_header
+    STORE start 0 8
+    JUMP copy_init
+
+  LABEL got_header
+    idx = LOAD i 8
+    bs = IADD idx 4 8
+    STORE start bs 8
+    JUMP copy_init
+
+  LABEL copy_init
+    STORE i 0 8
+    s = LOAD start 8
+    total = ISUB rl s 8
+    STORE start s 8
+
+  LABEL copy_loop
+    idx = LOAD i 8
+    done = IGE idx total 8
+    BRANCH done copy_done copy_byte
+  LABEL copy_byte
+    idx = LOAD i 8
+    s = LOAD start 8
+    src = IADD s idx 8
+    byte = LOAD raw 1 src
+    STORE body byte 1 idx
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_loop
+
+  LABEL copy_done
+    STORE body_len total 8
+    FREE i
+    FREE start
+END

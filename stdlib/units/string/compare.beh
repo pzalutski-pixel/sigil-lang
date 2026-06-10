@@ -1,0 +1,98 @@
+BEHAVIOR compare
+
+DESCRIPTION
+  Lexicographically compares two byte sequences.
+  Returns negative if first is less than second.
+  Returns zero if equal.
+  Returns positive if first is greater than second.
+  Comparison is byte-by-byte, not unicode-aware.
+
+CONTRACT
+  INPUT first bytes 65536
+  INPUT second bytes 65536
+  OUTPUT result int 8
+  GUARANTEES writes_output
+
+HASH 7e0ab27b
+
+IMPLEMENTATION
+  # Compare byte by byte until difference or both null
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  max = ALLOC 8 int
+  STORE max 65536 8
+
+  LABEL compare_loop
+    # Check bounds
+    i_val = LOAD i 8
+    max_val = LOAD max 8
+    at_max = IGE i_val max_val 8
+    BRANCH at_max equal continue_compare
+
+  LABEL continue_compare
+    # Load bytes from both strings at position i
+    i_val = LOAD i 8
+    byte1 = LOAD first 1 i_val
+    byte2 = LOAD second 1 i_val
+
+    # Check if both are null (equal strings)
+    zero = ALLOC 1 int
+    STORE zero 0 1
+    zero_val = LOAD zero 1
+    FREE zero
+    is_null1 = IEQ byte1 zero_val 1
+    is_null2 = IEQ byte2 zero_val 1
+    both_null = AND is_null1 is_null2 1
+    BRANCH both_null equal check_diff
+
+  LABEL check_diff
+    # If first is null but second isn't, first < second
+    BRANCH is_null1 less_than check_diff2
+
+  LABEL check_diff2
+    # If second is null but first isn't, first > second
+    BRANCH is_null2 greater_than compare_bytes
+
+  LABEL compare_bytes
+    # Compare the actual bytes
+    less = ILT byte1 byte2 1
+    BRANCH less less_than check_greater
+
+  LABEL check_greater
+    greater = IGT byte1 byte2 1
+    BRANCH greater greater_than next_byte
+
+  LABEL next_byte
+    i_val = LOAD i 8
+    new_i = IADD i_val 1 8
+    STORE i new_i 8
+    JUMP compare_loop
+
+  LABEL less_than
+    neg_one = ALLOC 8 int
+    STORE neg_one -1 8
+    neg_val = LOAD neg_one 8
+    FREE neg_one
+    STORE result neg_val 8
+    JUMP done
+
+  LABEL greater_than
+    one = ALLOC 8 int
+    STORE one 1 8
+    one_val = LOAD one 8
+    FREE one
+    STORE result one_val 8
+    JUMP done
+
+  LABEL equal
+    zero_res = ALLOC 8 int
+    STORE zero_res 0 8
+    zero_res_val = LOAD zero_res 8
+    FREE zero_res
+    STORE result zero_res_val 8
+
+  LABEL done
+    FREE i
+    FREE max
+END

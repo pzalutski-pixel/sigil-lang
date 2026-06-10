@@ -1,0 +1,26 @@
+BEHAVIOR addr-server
+
+DESCRIPTION
+  Builds a sockaddr_in for binding to 0.0.0.0:9816.
+  Bytes 0-1 family AF_INET (2). Bytes 2-3 port 9816 big-endian.
+  Bytes 4-7 IP 0.0.0.0 (any). Bytes 8-15 padding.
+
+CONTRACT
+  OUTPUT addr bytes 16
+  OUTPUT alen int 8
+  GUARANTEES writes_output
+
+HASH 9e6c0dad
+
+IMPLEMENTATION
+  STORE addr 2 1 0
+  STORE addr 0 1 1
+  STORE addr 38 1 2
+  STORE addr 88 1 3
+  STORE addr 0 1 4
+  STORE addr 0 1 5
+  STORE addr 0 1 6
+  STORE addr 0 1 7
+  STORE addr 0 8 8
+  STORE alen 16 8
+END

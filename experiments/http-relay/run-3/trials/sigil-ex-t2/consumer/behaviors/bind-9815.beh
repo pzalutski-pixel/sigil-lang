@@ -1,0 +1,18 @@
+BEHAVIOR bind-9815
+
+DESCRIPTION
+  Binds a socket to port 9815 on all interfaces.
+
+CONTRACT
+  INPUT sock_fd int 8
+  OUTPUT status int 8
+  REQUIRES bind@697435f5 make-addr-9815@00f67ec4
+  GUARANTEES writes_output
+
+HASH a3081b58
+
+COMPOSITION
+  addr_result = CALL make-addr-9815
+  bind_result = CALL bind sock_fd addr_result.addr 16
+  SET status bind_result.status
+END

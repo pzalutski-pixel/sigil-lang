@@ -1,0 +1,9 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Consumer: listens on port 9819 for one HTTP POST, prepends a
+  timestamp and PROCESSED BY CONSUMER line, writes to output.txt.
+
+ENTRY
+  CALL consumer-main -> status
+END_EXECUTABLE

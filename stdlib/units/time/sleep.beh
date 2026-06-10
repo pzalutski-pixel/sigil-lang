@@ -1,0 +1,14 @@
+BEHAVIOR sleep
+
+DESCRIPTION
+  Pauses execution for specified milliseconds.
+  Returns 0 on success, negative if interrupted.
+
+CONTRACT
+  INPUT milliseconds int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH 68807b36
+
+NATIVE

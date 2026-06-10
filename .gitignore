@@ -1,0 +1,39 @@
+# Build output ------------------------------------------------------------
+# Rust
+target/
+**/target/
+# C runtime and linker output
+**/build/
+*.exe
+*.dll
+*.lib
+*.a
+*.o
+*.obj
+*.pdb
+# Compiled Sigil output / scratch
+/build/
+.cache/
+/dist/
+/out/
+output.*
+test_out*
+
+# Generated artifacts ------------------------------------------------------
+# lib/ holds the compiled standard library; stdlib/ is the source of truth.
+lib/
+
+# Local-only developer & assistant guidance (not part of the public release)
+CLAUDE.md
+docs/RUST-PATTERNS.md
+.claude/
+
+# OS / editor --------------------------------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+nul

@@ -1,0 +1,187 @@
+BEHAVIOR build-output
+
+DESCRIPTION
+  Builds the processed output buffer from a received HTTP request.
+  Finds the body (after the first CRLF CRLF), then assembles:
+    <timestamp> PROCESSED BY CONSUMER\n<body>\n
+  Inputs: raw request bytes + its length, timestamp bytes + its length.
+  Outputs: the assembled buffer + its length.
+
+CONTRACT
+  INPUT raw bytes 65536
+  INPUT raw_length int 8
+  INPUT timestamp bytes 32
+  INPUT ts_length int 8
+  OUTPUT result bytes 65536
+  OUTPUT result_length int 8
+  GUARANTEES writes_output
+
+HASH 5f56fa39
+
+IMPLEMENTATION
+  # --- locals ---
+  i = ALLOC 8 int
+  STORE i 0 8
+  out = ALLOC 8 int
+  STORE out 0 8
+  body_start = ALLOC 8 int
+  STORE body_start 0 8
+  scan = ALLOC 8 int
+  STORE scan 0 8
+
+  req_len = LOAD raw_length 8
+
+  # --- 1. copy timestamp into output ---
+  ts_len = LOAD ts_length 8
+  STORE i 0 8
+
+  LABEL copy_ts
+    idx = LOAD i 8
+    done_ts = IGE idx ts_len 8
+    BRANCH done_ts end_ts copy_ts_byte
+
+  LABEL copy_ts_byte
+    idx = LOAD i 8
+    b = LOAD timestamp 1 idx
+    o = LOAD out 8
+    STORE result b 1 o
+    o2 = IADD o 1 8
+    STORE out o2 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_ts
+
+  LABEL end_ts
+    # --- 2. append " PROCESSED BY CONSUMER\n" (23 bytes) ---
+    o = LOAD out 8
+    STORE result 32 1 o
+    o = IADD o 1 8
+    STORE result 80 1 o
+    o = IADD o 1 8
+    STORE result 82 1 o
+    o = IADD o 1 8
+    STORE result 79 1 o
+    o = IADD o 1 8
+    STORE result 67 1 o
+    o = IADD o 1 8
+    STORE result 69 1 o
+    o = IADD o 1 8
+    STORE result 83 1 o
+    o = IADD o 1 8
+    STORE result 83 1 o
+    o = IADD o 1 8
+    STORE result 69 1 o
+    o = IADD o 1 8
+    STORE result 68 1 o
+    o = IADD o 1 8
+    STORE result 32 1 o
+    o = IADD o 1 8
+    STORE result 66 1 o
+    o = IADD o 1 8
+    STORE result 89 1 o
+    o = IADD o 1 8
+    STORE result 32 1 o
+    o = IADD o 1 8
+    STORE result 67 1 o
+    o = IADD o 1 8
+    STORE result 79 1 o
+    o = IADD o 1 8
+    STORE result 78 1 o
+    o = IADD o 1 8
+    STORE result 83 1 o
+    o = IADD o 1 8
+    STORE result 85 1 o
+    o = IADD o 1 8
+    STORE result 77 1 o
+    o = IADD o 1 8
+    STORE result 69 1 o
+    o = IADD o 1 8
+    STORE result 82 1 o
+    o = IADD o 1 8
+    STORE result 10 1 o
+    o = IADD o 1 8
+    STORE out o 8
+
+  # --- 3. find body start: first CRLF CRLF in raw ---
+    STORE scan 0 8
+
+  LABEL find_body
+    s = LOAD scan 8
+    bound = IADD s 3 8
+    over = IGE bound req_len 8
+    BRANCH over no_body check_crlf
+
+  LABEL check_crlf
+    s = LOAD scan 8
+    c1 = LOAD raw 1 s
+    p1 = IADD s 1 8
+    c2 = LOAD raw 1 p1
+    p2 = IADD s 2 8
+    c3 = LOAD raw 1 p2
+    p3 = IADD s 3 8
+    c4 = LOAD raw 1 p3
+    e1 = IEQ c1 13 1
+    e2 = IEQ c2 10 1
+    e3 = IEQ c3 13 1
+    e4 = IEQ c4 10 1
+    a1 = AND e1 e2 1
+    a2 = AND e3 e4 1
+    found = AND a1 a2 1
+    BRANCH found set_body inc_scan
+
+  LABEL inc_scan
+    s = LOAD scan 8
+    ns = IADD s 1 8
+    STORE scan ns 8
+    JUMP find_body
+
+  LABEL set_body
+    s = LOAD scan 8
+    bs = IADD s 4 8
+    STORE body_start bs 8
+    JUMP copy_body
+
+  LABEL no_body
+    # No header terminator: treat the whole buffer as body
+    STORE body_start 0 8
+    JUMP copy_body
+
+  # --- 4. append body bytes ---
+  LABEL copy_body
+    STORE i 0 8
+
+  LABEL copy_body_loop
+    idx = LOAD i 8
+    bs = LOAD body_start 8
+    src = IADD bs idx 8
+    atend = IGE src req_len 8
+    BRANCH atend end_body copy_body_byte
+
+  LABEL copy_body_byte
+    idx = LOAD i 8
+    bs = LOAD body_start 8
+    src = IADD bs idx 8
+    b = LOAD raw 1 src
+    o = LOAD out 8
+    STORE result b 1 o
+    o2 = IADD o 1 8
+    STORE out o2 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_body_loop
+
+  LABEL end_body
+    # --- 5. append trailing newline ---
+    o = LOAD out 8
+    STORE result 10 1 o
+    o = IADD o 1 8
+    STORE out o 8
+
+    final = LOAD out 8
+    STORE result_length final 8
+
+    FREE i
+    FREE out
+    FREE body_start
+    FREE scan
+END

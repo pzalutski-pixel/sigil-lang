@@ -1,0 +1,85 @@
+BEHAVIOR extract-body
+
+DESCRIPTION
+  Extracts the HTTP body from a raw request buffer.
+  Finds the CRLFCRLF (13 10 13 10) header terminator and copies
+  everything after it into body. If not found, copies nothing.
+
+CONTRACT
+  INPUT req bytes 65536
+  INPUT rlen int 8
+  OUTPUT body bytes 65536
+  OUTPUT blen int 8
+  GUARANTEES writes_output
+
+HASH 3481f1e1
+
+IMPLEMENTATION
+  # Ensure body is written on all paths (satisfies writes_output).
+  STORE body 0 1 0
+  rl = LOAD rlen 8
+
+  # start = index of first byte after CRLFCRLF, or rl if not found
+  start = ALLOC 8 int
+  STORE start rl 8
+
+  k = ALLOC 8 int
+  STORE k 0 8
+
+  # limit = rl - 3 (need 4 bytes available)
+  limit = ISUB rl 3 8
+
+  LABEL search
+    kv = LOAD k 8
+    atend = IGE kv limit 8
+    BRANCH atend search_done check
+  LABEL check
+    c0 = LOAD req 1 kv
+    p1 = IADD kv 1 8
+    c1 = LOAD req 1 p1
+    p2 = IADD kv 2 8
+    c2 = LOAD req 1 p2
+    p3 = IADD kv 3 8
+    c3 = LOAD req 1 p3
+    m0 = IEQ c0 13 8
+    m1 = IEQ c1 10 8
+    m2 = IEQ c2 13 8
+    m3 = IEQ c3 10 8
+    a01 = AND m0 m1 8
+    a23 = AND m2 m3 8
+    allm = AND a01 a23 8
+    BRANCH allm found advance
+  LABEL advance
+    kv2 = IADD kv 1 8
+    STORE k kv2 8
+    JUMP search
+  LABEL found
+    bstart = IADD kv 4 8
+    STORE start bstart 8
+    JUMP search_done
+  LABEL search_done
+
+  # copy req[start..rl) into body[0..]
+  sv = LOAD start 8
+  count = ISUB rl sv 8
+
+  j = ALLOC 8 int
+  STORE j 0 8
+  LABEL copy_loop
+    jv = LOAD j 8
+    cdone = IGE jv count 8
+    BRANCH cdone copy_done copy_body
+  LABEL copy_body
+    srcoff = IADD sv jv 8
+    bv = LOAD req 1 srcoff
+    STORE body bv 1 jv
+    jv2 = IADD jv 1 8
+    STORE j jv2 8
+    JUMP copy_loop
+  LABEL copy_done
+
+  FREE start
+  FREE k
+  FREE j
+  STORE blen count 8
+END

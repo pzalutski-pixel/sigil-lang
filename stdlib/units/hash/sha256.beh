@@ -1,0 +1,450 @@
+BEHAVIOR sha256
+
+DESCRIPTION
+  SHA-256 (FIPS 180-4) of the first len bytes of data. Writes the 32-byte
+  big-endian digest. Pads per the standard (0x80, zeros, then the 64-bit
+  big-endian bit length), and processes 64-byte blocks. Examples:
+  sha256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855;
+  sha256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad.
+  K constants and the message schedule W live in a scratch buffer; all
+  arithmetic is 32-bit (masked with M = 4294967295 = 0xFFFFFFFF). data is
+  capped at 65536 bytes, so the padded message fits in the buffer.
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT len int 8
+  OUTPUT digest bytes 32
+  GUARANTEES writes_output
+
+HASH b5957c49
+
+IMPLEMENTATION
+  M = 4294967295
+  lenv = LOAD len 8
+  buf = ALLOC 66560 bytes
+
+  STORE buf 1116352408 4 0
+  STORE buf 1899447441 4 4
+  STORE buf 3049323471 4 8
+  STORE buf 3921009573 4 12
+  STORE buf 961987163 4 16
+  STORE buf 1508970993 4 20
+  STORE buf 2453635748 4 24
+  STORE buf 2870763221 4 28
+  STORE buf 3624381080 4 32
+  STORE buf 310598401 4 36
+  STORE buf 607225278 4 40
+  STORE buf 1426881987 4 44
+  STORE buf 1925078388 4 48
+  STORE buf 2162078206 4 52
+  STORE buf 2614888103 4 56
+  STORE buf 3248222580 4 60
+  STORE buf 3835390401 4 64
+  STORE buf 4022224774 4 68
+  STORE buf 264347078 4 72
+  STORE buf 604807628 4 76
+  STORE buf 770255983 4 80
+  STORE buf 1249150122 4 84
+  STORE buf 1555081692 4 88
+  STORE buf 1996064986 4 92
+  STORE buf 2554220882 4 96
+  STORE buf 2821834349 4 100
+  STORE buf 2952996808 4 104
+  STORE buf 3210313671 4 108
+  STORE buf 3336571891 4 112
+  STORE buf 3584528711 4 116
+  STORE buf 113926993 4 120
+  STORE buf 338241895 4 124
+  STORE buf 666307205 4 128
+  STORE buf 773529912 4 132
+  STORE buf 1294757372 4 136
+  STORE buf 1396182291 4 140
+  STORE buf 1695183700 4 144
+  STORE buf 1986661051 4 148
+  STORE buf 2177026350 4 152
+  STORE buf 2456956037 4 156
+  STORE buf 2730485921 4 160
+  STORE buf 2820302411 4 164
+  STORE buf 3259730800 4 168
+  STORE buf 3345764771 4 172
+  STORE buf 3516065817 4 176
+  STORE buf 3600352804 4 180
+  STORE buf 4094571909 4 184
+  STORE buf 275423344 4 188
+  STORE buf 430227734 4 192
+  STORE buf 506948616 4 196
+  STORE buf 659060556 4 200
+  STORE buf 883997877 4 204
+  STORE buf 958139571 4 208
+  STORE buf 1322822218 4 212
+  STORE buf 1537002063 4 216
+  STORE buf 1747873779 4 220
+  STORE buf 1955562222 4 224
+  STORE buf 2024104815 4 228
+  STORE buf 2227730452 4 232
+  STORE buf 2361852424 4 236
+  STORE buf 2428436474 4 240
+  STORE buf 2756734187 4 244
+  STORE buf 3204031479 4 248
+  STORE buf 3329325298 4 252
+
+  t = IADD lenv 8 8
+  q = IDIV t 64 8
+  blocks = IADD q 1 8
+  plen = IMUL blocks 64 8
+
+  z = 0
+  LABEL zloop
+    zdone = IGE z plen 8
+    BRANCH zdone zfin zbody
+  LABEL zbody
+    zoff = IADD z 512 8
+    STORE buf 0 1 zoff
+    z = IADD z 1 8
+    JUMP zloop
+  LABEL zfin
+
+  j = 0
+  LABEL cploop
+    cpdone = IGE j lenv 8
+    BRANCH cpdone cpfin cpbody
+  LABEL cpbody
+    db = LOAD data 1 j
+    db = AND db 255 8
+    moff = IADD j 512 8
+    STORE buf db 1 moff
+    j = IADD j 1 8
+    JUMP cploop
+  LABEL cpfin
+
+  eoff = IADD lenv 512 8
+  STORE buf 128 1 eoff
+
+  bitlen = IMUL lenv 8 8
+  lbase = IADD plen 512 8
+  lbase = ISUB lbase 8 8
+  lb = SHR bitlen 56 8
+  lb = AND lb 255 8
+  STORE buf lb 1 lbase
+  o1 = IADD lbase 1 8
+  lb = SHR bitlen 48 8
+  lb = AND lb 255 8
+  STORE buf lb 1 o1
+  o2 = IADD lbase 2 8
+  lb = SHR bitlen 40 8
+  lb = AND lb 255 8
+  STORE buf lb 1 o2
+  o3 = IADD lbase 3 8
+  lb = SHR bitlen 32 8
+  lb = AND lb 255 8
+  STORE buf lb 1 o3
+  o4 = IADD lbase 4 8
+  lb = SHR bitlen 24 8
+  lb = AND lb 255 8
+  STORE buf lb 1 o4
+  o5 = IADD lbase 5 8
+  lb = SHR bitlen 16 8
+  lb = AND lb 255 8
+  STORE buf lb 1 o5
+  o6 = IADD lbase 6 8
+  lb = SHR bitlen 8 8
+  lb = AND lb 255 8
+  STORE buf lb 1 o6
+  o7 = IADD lbase 7 8
+  lb = AND bitlen 255 8
+  STORE buf lb 1 o7
+
+  h0 = 1779033703
+  h1 = 3144134277
+  h2 = 1013904242
+  h3 = 2773480762
+  h4 = 1359893119
+  h5 = 2600822924
+  h6 = 528734635
+  h7 = 1541459225
+
+  ci = 0
+  LABEL chunkloop
+    cdone = IGE ci plen 8
+    BRANCH cdone chunkfin chunkbody
+  LABEL chunkbody
+    mbase = IADD ci 512 8
+
+    t = 0
+  LABEL wload
+    wldone = IGE t 16 8
+    BRANCH wldone wlfin wlbody
+  LABEL wlbody
+    t4 = IMUL t 4 8
+    bo = IADD mbase t4 8
+    c0 = LOAD buf 1 bo
+    c0 = AND c0 255 8
+    p0 = SHL c0 24 8
+    bo1 = IADD bo 1 8
+    c1 = LOAD buf 1 bo1
+    c1 = AND c1 255 8
+    p1 = SHL c1 16 8
+    bo2 = IADD bo 2 8
+    c2 = LOAD buf 1 bo2
+    c2 = AND c2 255 8
+    p2 = SHL c2 8 8
+    bo3 = IADD bo 3 8
+    c3 = LOAD buf 1 bo3
+    c3 = AND c3 255 8
+    wv = OR p0 p1 8
+    wv = OR wv p2 8
+    wv = OR wv c3 8
+    woff = IADD t4 256 8
+    STORE buf wv 4 woff
+    t = IADD t 1 8
+    JUMP wload
+  LABEL wlfin
+
+    t = 16
+  LABEL wext
+    wedone = IGE t 64 8
+    BRANCH wedone wefin webody
+  LABEL webody
+    tm15 = ISUB t 15 8
+    o15 = IMUL tm15 4 8
+    o15 = IADD o15 256 8
+    w15 = LOAD buf 4 o15
+    w15 = AND w15 M 8
+    tm2 = ISUB t 2 8
+    o2x = IMUL tm2 4 8
+    o2x = IADD o2x 256 8
+    w2 = LOAD buf 4 o2x
+    w2 = AND w2 M 8
+    tm16 = ISUB t 16 8
+    o16 = IMUL tm16 4 8
+    o16 = IADD o16 256 8
+    w16 = LOAD buf 4 o16
+    w16 = AND w16 M 8
+    tm7 = ISUB t 7 8
+    o7x = IMUL tm7 4 8
+    o7x = IADD o7x 256 8
+    w7 = LOAD buf 4 o7x
+    w7 = AND w7 M 8
+    s0a1 = SHR w15 7 8
+    s0a2 = SHL w15 25 8
+    s0a = OR s0a1 s0a2 8
+    s0a = AND s0a M 8
+    s0b1 = SHR w15 18 8
+    s0b2 = SHL w15 14 8
+    s0b = OR s0b1 s0b2 8
+    s0b = AND s0b M 8
+    s0c = SHR w15 3 8
+    s0 = XOR s0a s0b 8
+    s0 = XOR s0 s0c 8
+    s1a1 = SHR w2 17 8
+    s1a2 = SHL w2 15 8
+    s1a = OR s1a1 s1a2 8
+    s1a = AND s1a M 8
+    s1b1 = SHR w2 19 8
+    s1b2 = SHL w2 13 8
+    s1b = OR s1b1 s1b2 8
+    s1b = AND s1b M 8
+    s1c = SHR w2 10 8
+    s1 = XOR s1a s1b 8
+    s1 = XOR s1 s1c 8
+    wt = IADD w16 s0 8
+    wt = IADD wt w7 8
+    wt = IADD wt s1 8
+    wt = AND wt M 8
+    t4e = IMUL t 4 8
+    woffe = IADD t4e 256 8
+    STORE buf wt 4 woffe
+    t = IADD t 1 8
+    JUMP wext
+  LABEL wefin
+
+    a = IADD h0 0 8
+    b = IADD h1 0 8
+    c = IADD h2 0 8
+    d = IADD h3 0 8
+    e = IADD h4 0 8
+    f = IADD h5 0 8
+    g = IADD h6 0 8
+    hv = IADD h7 0 8
+
+    t = 0
+  LABEL rnd
+    rdone = IGE t 64 8
+    BRANCH rdone rfin rbody
+  LABEL rbody
+    kt4 = IMUL t 4 8
+    kt = LOAD buf 4 kt4
+    kt = AND kt M 8
+    wo = IADD kt4 256 8
+    wt = LOAD buf 4 wo
+    wt = AND wt M 8
+    e1a = SHR e 6 8
+    e1b = SHL e 26 8
+    e1 = OR e1a e1b 8
+    e1 = AND e1 M 8
+    e2a = SHR e 11 8
+    e2b = SHL e 21 8
+    e2 = OR e2a e2b 8
+    e2 = AND e2 M 8
+    e3a = SHR e 25 8
+    e3b = SHL e 7 8
+    e3 = OR e3a e3b 8
+    e3 = AND e3 M 8
+    bigS1 = XOR e1 e2 8
+    bigS1 = XOR bigS1 e3 8
+    ne = XOR e M 8
+    ef = AND e f 8
+    ng = AND ne g 8
+    chh = XOR ef ng 8
+    tt1 = IADD hv bigS1 8
+    tt1 = IADD tt1 chh 8
+    tt1 = IADD tt1 kt 8
+    tt1 = IADD tt1 wt 8
+    tt1 = AND tt1 M 8
+    a1a = SHR a 2 8
+    a1b = SHL a 30 8
+    a1 = OR a1a a1b 8
+    a1 = AND a1 M 8
+    a2a = SHR a 13 8
+    a2b = SHL a 19 8
+    a2 = OR a2a a2b 8
+    a2 = AND a2 M 8
+    a3a = SHR a 22 8
+    a3b = SHL a 10 8
+    a3 = OR a3a a3b 8
+    a3 = AND a3 M 8
+    bigS0 = XOR a1 a2 8
+    bigS0 = XOR bigS0 a3 8
+    m1 = AND a b 8
+    m2 = AND a c 8
+    m3 = AND b c 8
+    maj = XOR m1 m2 8
+    maj = XOR maj m3 8
+    tt2 = IADD bigS0 maj 8
+    tt2 = AND tt2 M 8
+    newe = IADD d tt1 8
+    newe = AND newe M 8
+    newa = IADD tt1 tt2 8
+    newa = AND newa M 8
+    hv = IADD g 0 8
+    g = IADD f 0 8
+    f = IADD e 0 8
+    e = IADD newe 0 8
+    d = IADD c 0 8
+    c = IADD b 0 8
+    b = IADD a 0 8
+    a = IADD newa 0 8
+    t = IADD t 1 8
+    JUMP rnd
+  LABEL rfin
+
+    h0 = IADD h0 a 8
+    h0 = AND h0 M 8
+    h1 = IADD h1 b 8
+    h1 = AND h1 M 8
+    h2 = IADD h2 c 8
+    h2 = AND h2 M 8
+    h3 = IADD h3 d 8
+    h3 = AND h3 M 8
+    h4 = IADD h4 e 8
+    h4 = AND h4 M 8
+    h5 = IADD h5 f 8
+    h5 = AND h5 M 8
+    h6 = IADD h6 g 8
+    h6 = AND h6 M 8
+    h7 = IADD h7 hv 8
+    h7 = AND h7 M 8
+    ci = IADD ci 64 8
+    JUMP chunkloop
+  LABEL chunkfin
+
+  db = SHR h0 24 8
+  db = AND db 255 8
+  STORE digest db 1 0
+  db = SHR h0 16 8
+  db = AND db 255 8
+  STORE digest db 1 1
+  db = SHR h0 8 8
+  db = AND db 255 8
+  STORE digest db 1 2
+  db = AND h0 255 8
+  STORE digest db 1 3
+  db = SHR h1 24 8
+  db = AND db 255 8
+  STORE digest db 1 4
+  db = SHR h1 16 8
+  db = AND db 255 8
+  STORE digest db 1 5
+  db = SHR h1 8 8
+  db = AND db 255 8
+  STORE digest db 1 6
+  db = AND h1 255 8
+  STORE digest db 1 7
+  db = SHR h2 24 8
+  db = AND db 255 8
+  STORE digest db 1 8
+  db = SHR h2 16 8
+  db = AND db 255 8
+  STORE digest db 1 9
+  db = SHR h2 8 8
+  db = AND db 255 8
+  STORE digest db 1 10
+  db = AND h2 255 8
+  STORE digest db 1 11
+  db = SHR h3 24 8
+  db = AND db 255 8
+  STORE digest db 1 12
+  db = SHR h3 16 8
+  db = AND db 255 8
+  STORE digest db 1 13
+  db = SHR h3 8 8
+  db = AND db 255 8
+  STORE digest db 1 14
+  db = AND h3 255 8
+  STORE digest db 1 15
+  db = SHR h4 24 8
+  db = AND db 255 8
+  STORE digest db 1 16
+  db = SHR h4 16 8
+  db = AND db 255 8
+  STORE digest db 1 17
+  db = SHR h4 8 8
+  db = AND db 255 8
+  STORE digest db 1 18
+  db = AND h4 255 8
+  STORE digest db 1 19
+  db = SHR h5 24 8
+  db = AND db 255 8
+  STORE digest db 1 20
+  db = SHR h5 16 8
+  db = AND db 255 8
+  STORE digest db 1 21
+  db = SHR h5 8 8
+  db = AND db 255 8
+  STORE digest db 1 22
+  db = AND h5 255 8
+  STORE digest db 1 23
+  db = SHR h6 24 8
+  db = AND db 255 8
+  STORE digest db 1 24
+  db = SHR h6 16 8
+  db = AND db 255 8
+  STORE digest db 1 25
+  db = SHR h6 8 8
+  db = AND db 255 8
+  STORE digest db 1 26
+  db = AND h6 255 8
+  STORE digest db 1 27
+  db = SHR h7 24 8
+  db = AND db 255 8
+  STORE digest db 1 28
+  db = SHR h7 16 8
+  db = AND db 255 8
+  STORE digest db 1 29
+  db = SHR h7 8 8
+  db = AND db 255 8
+  STORE digest db 1 30
+  db = AND h7 255 8
+  STORE digest db 1 31
+  FREE buf
+END

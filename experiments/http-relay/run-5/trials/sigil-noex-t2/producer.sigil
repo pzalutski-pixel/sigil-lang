@@ -1,0 +1,33 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  Reads input.txt and sends its contents as the body of an HTTP POST to
+  localhost:9812.
+
+ENTRY
+  # Read the input file.
+  path = "input.txt"
+  fileres = CALL read-file-all path
+  DISCARD fileres.length
+
+  # Build the HTTP request from the file body.
+  reqres = CALL build-request fileres.data fileres.length
+
+  # Create a TCP socket (AF_INET=2, SOCK_STREAM=1).
+  sockres = CALL socket 2 1
+
+  # Build sockaddr for 127.0.0.1:9812. ip packed network-order: 127.0.0.1 -> 16777343.
+  addrres = CALL make-sockaddr 9812 16777343
+
+  # Connect.
+  connres = CALL connect sockres.fd addrres.addr addrres.addr_len
+  DISCARD connres.status
+
+  # Send the request.
+  sendres = CALL send sockres.fd reqres.req reqres.req_len
+  DISCARD sendres.bytes_sent
+
+  # Close the socket.
+  closeres = CALL close-socket sockres.fd
+  DISCARD closeres.status
+END_EXECUTABLE

@@ -1,0 +1,18 @@
+BEHAVIOR bind
+
+DESCRIPTION
+  Server-side: binds socket to local address and port.
+  Address format: sockaddr_in (16 bytes for IPv4).
+  Bytes 0-1: family (2=AF_INET). Bytes 2-3: port (big-endian).
+  Bytes 4-7: IP (0=any). Returns 0 on success.
+
+CONTRACT
+  INPUT fd int 8
+  INPUT addr bytes 128
+  INPUT addr_len int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH 697435f5
+
+NATIVE

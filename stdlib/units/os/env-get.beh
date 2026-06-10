@@ -1,0 +1,16 @@
+BEHAVIOR env-get
+
+DESCRIPTION
+  Value of the environment variable named by the null-terminated `name` buffer,
+  as a null-terminated byte buffer, plus found=1/0. Absent variable yields an
+  empty value and found=0.
+
+CONTRACT
+  INPUT name bytes 256
+  OUTPUT value bytes 65536
+  OUTPUT found int 8
+  GUARANTEES writes_output
+
+HASH 02454929
+
+NATIVE

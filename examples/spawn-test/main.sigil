@@ -1,0 +1,15 @@
+EXECUTABLE spawn-test
+
+DESCRIPTION
+  Test SPAWN and WAIT with pattern.
+
+USES worker.pattern
+
+ENTRY
+  CALL print-start
+  handle = SPAWN worker
+  CALL print-spawned
+  result = WAIT handle
+  CALL print-done
+  SET status 0
+END_EXECUTABLE

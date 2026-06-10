@@ -1,0 +1,29 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Listens on TCP 9811 for one HTTP POST, frames the body with a timestamp and
+  " PROCESSED BY CONSUMER\n", and writes the result to output.txt.
+
+ENTRY
+  sock = CALL socket 2 1
+  addr = CALL make-sockaddr 9811 0
+  bstat = CALL bind sock.fd addr.addr addr.addr_len
+  DISCARD bstat.status
+  lstat = CALL listen sock.fd 16
+  DISCARD lstat.status
+  conn = CALL accept sock.fd
+  DISCARD conn.client_addr
+  DISCARD conn.addr_len
+  rcv = CALL receive conn.client_fd 65536
+  t = CALL now
+  ft = CALL format-time t.timestamp
+  DISCARD ft.length
+  built = CALL build-consumer-output rcv.buffer rcv.bytes_received ft.formatted
+  path = "output.txt"
+  wf = CALL write-file-all path built.out built.out_len
+  DISCARD wf.bytes_written
+  cs = CALL close-socket conn.client_fd
+  DISCARD cs.status
+  cs2 = CALL close-socket sock.fd
+  DISCARD cs2.status
+END_EXECUTABLE

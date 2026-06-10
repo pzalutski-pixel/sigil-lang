@@ -1,0 +1,53 @@
+BEHAVIOR consumer-main
+
+DESCRIPTION
+  Listens on TCP port 9821 for one HTTP POST, timestamps and frames the body,
+  and writes the result to output.txt.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c make-sockaddr@a9866fc0 bind@697435f5 listen@95b7eb35 accept@e88849be receive@2ae7614b now@cee78134 format-time@83ebda2d assemble-output@242de99a write-file-all@b17d9aa8 close-socket@d4ba30e5
+  GUARANTEES writes_output
+
+HASH f709e3e2
+
+COMPOSITION
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Bind to port 9821 on all interfaces (ip 0)
+  addr_result = CALL make-sockaddr 9821 0
+  bind_result = CALL bind sock_fd addr_result.addr addr_result.addr_len
+  DISCARD bind_result
+
+  # Listen, backlog 10
+  listen_result = CALL listen sock_fd 10
+  DISCARD listen_result
+
+  # Accept one client connection
+  accept_result = CALL accept sock_fd
+  client_fd = accept_result.client_fd
+  DISCARD accept_result.client_addr
+  DISCARD accept_result.addr_len
+
+  # Receive the HTTP request
+  recv_result = CALL receive client_fd 65536
+
+  # Timestamp now (ms since epoch) -> "YYYY-MM-DD HH:MM:SS"
+  t = CALL now
+  ts = CALL format-time t.timestamp
+  DISCARD ts.length
+
+  # Build the framed output and write it to output.txt
+  asm = CALL assemble-output ts.formatted recv_result.buffer recv_result.bytes_received
+  path = "output.txt"
+  wr = CALL write-file-all path asm.out asm.out_length
+  DISCARD wr.bytes_written
+
+  # Close the client socket
+  close_result = CALL close-socket client_fd
+  DISCARD close_result
+
+  SET status 0
+END

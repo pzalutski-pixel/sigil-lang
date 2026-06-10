@@ -1,0 +1,174 @@
+BEHAVIOR assemble-output
+
+DESCRIPTION
+  Takes a raw received HTTP request (request + req_len) and a formatted
+  timestamp (stamp + stamp_len), finds the request body (everything after the
+  first CRLF CRLF), and builds the output image:
+    <stamp> PROCESSED BY CONSUMER\n<body>
+  Writes the assembled bytes into result and its byte count into result_len.
+  If no CRLF CRLF is found, the whole request is treated as the body.
+
+CONTRACT
+  INPUT request bytes 65536
+  INPUT req_len int 8
+  INPUT stamp bytes 32
+  INPUT stamp_len int 8
+  OUTPUT result bytes 65536
+  OUTPUT result_len int 8
+  GUARANTEES writes_output
+
+HASH 51ae88c1
+
+IMPLEMENTATION
+  # scan index into request, looking for \r\n\r\n
+  scan = ALLOC 8 int
+  STORE scan 0 8
+  body_start = ALLOC 8 int
+  STORE body_start 0 8
+  outp = ALLOC 8 int
+  STORE outp 0 8
+  i = ALLOC 8 int
+  STORE i 0 8
+
+  # default: body is whole request (no header terminator found)
+  rl = LOAD req_len 8
+  STORE body_start rl 8
+
+  LABEL find_term
+    s = LOAD scan 8
+    bound = IADD s 3 8
+    over = IGE bound rl 8
+    BRANCH over after_find check_term
+
+  LABEL check_term
+    s = LOAD scan 8
+    b1 = LOAD request 1 s
+    n1 = IADD s 1 8
+    b2 = LOAD request 1 n1
+    n2 = IADD s 2 8
+    b3 = LOAD request 1 n2
+    n3 = IADD s 3 8
+    b4 = LOAD request 1 n3
+    is_cr1 = IEQ b1 13 1
+    is_lf1 = IEQ b2 10 1
+    is_cr2 = IEQ b3 13 1
+    is_lf2 = IEQ b4 10 1
+    c1 = AND is_cr1 is_lf1 1
+    c2 = AND is_cr2 is_lf2 1
+    is_term = AND c1 c2 1
+    BRANCH is_term found_term inc_scan
+
+  LABEL inc_scan
+    s = LOAD scan 8
+    ns = IADD s 1 8
+    STORE scan ns 8
+    JUMP find_term
+
+  LABEL found_term
+    s = LOAD scan 8
+    bs = IADD s 4 8
+    STORE body_start bs 8
+
+  LABEL after_find
+    # write timestamp (stamp_len bytes) into result at offset 0
+    STORE i 0 8
+
+  LABEL copy_stamp
+    idx = LOAD i 8
+    sl = LOAD stamp_len 8
+    done = IGE idx sl 8
+    BRANCH done stamp_done copy_stamp_byte
+
+  LABEL copy_stamp_byte
+    idx = LOAD i 8
+    byte = LOAD stamp 1 idx
+    STORE result byte 1 idx
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_stamp
+
+  LABEL stamp_done
+    sl = LOAD stamp_len 8
+    STORE outp sl 8
+
+    # write " PROCESSED BY CONSUMER\n" (23 bytes)
+    p = LOAD outp 8
+    STORE result 32 1 p
+    p = IADD p 1 8
+    STORE result 80 1 p
+    p = IADD p 1 8
+    STORE result 82 1 p
+    p = IADD p 1 8
+    STORE result 79 1 p
+    p = IADD p 1 8
+    STORE result 67 1 p
+    p = IADD p 1 8
+    STORE result 69 1 p
+    p = IADD p 1 8
+    STORE result 83 1 p
+    p = IADD p 1 8
+    STORE result 83 1 p
+    p = IADD p 1 8
+    STORE result 69 1 p
+    p = IADD p 1 8
+    STORE result 68 1 p
+    p = IADD p 1 8
+    STORE result 32 1 p
+    p = IADD p 1 8
+    STORE result 66 1 p
+    p = IADD p 1 8
+    STORE result 89 1 p
+    p = IADD p 1 8
+    STORE result 32 1 p
+    p = IADD p 1 8
+    STORE result 67 1 p
+    p = IADD p 1 8
+    STORE result 79 1 p
+    p = IADD p 1 8
+    STORE result 78 1 p
+    p = IADD p 1 8
+    STORE result 83 1 p
+    p = IADD p 1 8
+    STORE result 85 1 p
+    p = IADD p 1 8
+    STORE result 77 1 p
+    p = IADD p 1 8
+    STORE result 69 1 p
+    p = IADD p 1 8
+    STORE result 82 1 p
+    p = IADD p 1 8
+    STORE result 10 1 p
+    p = IADD p 1 8
+    STORE outp p 8
+
+    # copy body: from request[body_start .. req_len) into result
+    STORE i 0 8
+
+  LABEL copy_body
+    idx = LOAD i 8
+    bs = LOAD body_start 8
+    src = IADD bs idx 8
+    done_b = IGE src rl 8
+    BRANCH done_b body_done copy_body_byte
+
+  LABEL copy_body_byte
+    idx = LOAD i 8
+    bs = LOAD body_start 8
+    src = IADD bs idx 8
+    byte = LOAD request 1 src
+    p = LOAD outp 8
+    STORE result byte 1 p
+    np = IADD p 1 8
+    STORE outp np 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_body
+
+  LABEL body_done
+    final = LOAD outp 8
+    STORE result_len final 8
+    FREE scan
+    FREE body_start
+    FREE outp
+    FREE i
+END

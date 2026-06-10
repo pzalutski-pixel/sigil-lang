@@ -1,0 +1,90 @@
+BEHAVIOR build-request
+
+DESCRIPTION
+  Builds a minimal HTTP POST request whose body is the given content.
+  Header is "POST / HTTP/1.1\r\nHost: localhost\r\n\r\n" followed by the body.
+  Inputs: body bytes + body length. Outputs: full request bytes + length.
+
+CONTRACT
+  INPUT body bytes 65536
+  INPUT body_length int 8
+  OUTPUT request bytes 65536
+  OUTPUT request_length int 8
+  GUARANTEES writes_output
+
+HASH 2d0207a2
+
+IMPLEMENTATION
+  i = ALLOC 8 int
+  STORE i 0 8
+  out = ALLOC 8 int
+  STORE out 0 8
+
+  # --- header: POST / HTTP/1.1\r\n ---
+  STORE request 80 1 0
+  STORE request 79 1 1
+  STORE request 83 1 2
+  STORE request 84 1 3
+  STORE request 32 1 4
+  STORE request 47 1 5
+  STORE request 32 1 6
+  STORE request 72 1 7
+  STORE request 84 1 8
+  STORE request 84 1 9
+  STORE request 80 1 10
+  STORE request 47 1 11
+  STORE request 49 1 12
+  STORE request 46 1 13
+  STORE request 49 1 14
+  STORE request 13 1 15
+  STORE request 10 1 16
+  # --- Host: localhost\r\n ---
+  STORE request 72 1 17
+  STORE request 111 1 18
+  STORE request 115 1 19
+  STORE request 116 1 20
+  STORE request 58 1 21
+  STORE request 32 1 22
+  STORE request 108 1 23
+  STORE request 111 1 24
+  STORE request 99 1 25
+  STORE request 97 1 26
+  STORE request 108 1 27
+  STORE request 104 1 28
+  STORE request 111 1 29
+  STORE request 115 1 30
+  STORE request 116 1 31
+  STORE request 13 1 32
+  STORE request 10 1 33
+  # --- blank line \r\n ---
+  STORE request 13 1 34
+  STORE request 10 1 35
+
+  STORE out 36 8
+
+  # --- append body ---
+  body_len = LOAD body_length 8
+  STORE i 0 8
+
+  LABEL copy_body
+    idx = LOAD i 8
+    done = IGE idx body_len 8
+    BRANCH done end_body copy_byte
+
+  LABEL copy_byte
+    idx = LOAD i 8
+    b = LOAD body 1 idx
+    o = LOAD out 8
+    STORE request b 1 o
+    o2 = IADD o 1 8
+    STORE out o2 8
+    ni = IADD idx 1 8
+    STORE i ni 8
+    JUMP copy_body
+
+  LABEL end_body
+    final = LOAD out 8
+    STORE request_length final 8
+    FREE i
+    FREE out
+END

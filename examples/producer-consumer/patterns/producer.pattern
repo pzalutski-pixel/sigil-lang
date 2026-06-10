@@ -1,0 +1,42 @@
+PATTERN producer
+
+MEMORY
+  chan_handle bytes 8
+  start_value int 8
+  item_count int 8
+  counter int 8
+
+ON_CREATE
+  # Initialize counter to 0
+  STORE counter 0 8
+
+  # Get parameters
+  start = LOAD start_value 8
+  count = LOAD item_count 8
+
+  LABEL produce_loop
+    current = LOAD counter 8
+    done_check = IGE current count 8
+    BRANCH done_check produce_done send_value
+
+  LABEL send_value
+    # Calculate value to send: start + counter
+    current = LOAD counter 8
+    val = IADD start current 8
+
+    # Send to channel
+    chan_id = LOAD chan_handle 8
+    CHANNEL_SEND chan_id val
+
+    # Increment counter
+    one_h = ALLOC 8 int
+    STORE one_h 1 8
+    one = LOAD one_h 8
+    FREE one_h
+    next = IADD current one 8
+    STORE counter next 8
+    JUMP produce_loop
+
+  LABEL produce_done
+
+END_PATTERN

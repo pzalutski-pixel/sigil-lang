@@ -1,0 +1,10 @@
+EXECUTABLE http-relay-consumer
+
+DESCRIPTION
+  HTTP server that listens on port 9753 for POST requests.
+  Prepends timestamp and "PROCESSED BY CONSUMER" to body.
+  Writes result to output.txt.
+
+ENTRY
+  CALL consumer -> status
+END_EXECUTABLE

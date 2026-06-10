@@ -1,0 +1,48 @@
+BEHAVIOR make-sockaddr
+
+DESCRIPTION
+  Builds a 16-byte IPv4 sockaddr_in for bind/connect, the boilerplate every
+  socket program otherwise hand-rolls.
+  family = AF_INET (2, little-endian bytes 0-1); port is host-order (e.g. 8080)
+  written big-endian into bytes 2-3; ip is 4 octets packed into an int in
+  network order (octet 0 in the low byte) written into bytes 4-7; bytes 8-15 are
+  zero. addr is a 128-byte buffer with the sockaddr at the start; addr_len = 16.
+
+CONTRACT
+  INPUT port int 8
+  INPUT ip int 8
+  OUTPUT addr bytes 128
+  OUTPUT addr_len int 8
+  GUARANTEES writes_output
+
+HASH a9866fc0
+
+IMPLEMENTATION
+  portv = LOAD port 8
+  ipv = LOAD ip 8
+
+  STORE addr 2 1 0
+  STORE addr 0 1 1
+
+  hi = SHR portv 8 8
+  hib = AND hi 255 8
+  lob = AND portv 255 8
+  STORE addr hib 1 2
+  STORE addr lob 1 3
+
+  b0 = AND ipv 255 8
+  t1 = SHR ipv 8 8
+  b1 = AND t1 255 8
+  t2 = SHR ipv 16 8
+  b2 = AND t2 255 8
+  t3 = SHR ipv 24 8
+  b3 = AND t3 255 8
+  STORE addr b0 1 4
+  STORE addr b1 1 5
+  STORE addr b2 1 6
+  STORE addr b3 1 7
+
+  STORE addr 0 8 8
+
+  STORE addr_len 16 8
+END

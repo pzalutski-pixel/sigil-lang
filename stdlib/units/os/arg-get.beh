@@ -1,0 +1,15 @@
+BEHAVIOR arg-get
+
+DESCRIPTION
+  The command-line argument at index (0 = program name) as a null-terminated
+  byte buffer, with its length. Out-of-range index yields an empty string.
+
+CONTRACT
+  INPUT index int 8
+  OUTPUT arg bytes 65536
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH ff3f8b8a
+
+NATIVE

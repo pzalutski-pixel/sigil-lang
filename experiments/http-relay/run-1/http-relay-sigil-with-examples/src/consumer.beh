@@ -1,0 +1,100 @@
+BEHAVIOR consumer
+
+DESCRIPTION
+  HTTP server that listens on port 9753 for POST requests.
+  Prepends timestamp and "PROCESSED BY CONSUMER" to body.
+  Writes result to output.txt.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c bind-9753@2c5b37ae listen@95b7eb35 accept@e88849be receive@2ae7614b now@cee78134 format-time@83ebda2d concat@162ee9a3 string-to-bytes@a2e66e29 open@7d62cd96 write@874767ff close@d4ba30e5 close-socket@d4ba30e5 println@a273ebb3 extract-http-body@1e5f295a length@458eeb66
+  GUARANTEES writes_output
+
+HASH f529191e
+
+COMPOSITION
+  # Create TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  # Bind to port 9753
+  bind_result = CALL bind-9753 sock_fd
+  DISCARD bind_result
+
+  # Listen with backlog 10
+  listen_result = CALL listen sock_fd 10
+  DISCARD listen_result
+
+  # Print listening message
+  msg1 = "Consumer listening on port 9753..."
+  CALL println msg1
+
+  # Accept connection
+  accept_result = CALL accept sock_fd
+  client_fd = accept_result.client_fd
+  DISCARD accept_result.client_addr
+  DISCARD accept_result.addr_len
+
+  # Receive HTTP request (up to 65536 bytes)
+  recv_result = CALL receive client_fd 65536
+  request_data = recv_result.buffer
+  request_len = recv_result.bytes_received
+
+  # Extract HTTP body (content after \r\n\r\n)
+  body_result = CALL extract-http-body request_data request_len
+  body = body_result.body
+  body_len = body_result.body_len
+
+  # Get current timestamp
+  time_result = CALL now
+  timestamp = time_result.timestamp
+
+  # Format timestamp as string "YYYY-MM-DD HH:MM:SS"
+  fmt_result = CALL format-time timestamp
+  time_str = fmt_result.formatted
+  DISCARD fmt_result.length
+
+  # Build header: "timestamp PROCESSED BY CONSUMER\n". concat works on byte
+  # buffers, so translate the string-literal suffix to bytes first.
+  header_suffix = " PROCESSED BY CONSUMER\n"
+  suffix_result = CALL string-to-bytes header_suffix
+  suffix_bytes = suffix_result.data
+  DISCARD suffix_result.length
+  header_result = CALL concat time_str suffix_bytes
+  header = header_result.result
+
+  # Get header length
+  header_len_result = CALL length header
+  header_len = header_len_result.len
+
+  # Open output.txt for writing (flags: write=1 + create=2 = 3)
+  outpath = "output.txt"
+  open_result = CALL open outpath 3
+  out_fd = open_result.fd
+
+  # Write header to file
+  write_result1 = CALL write out_fd header header_len
+  DISCARD write_result1
+
+  # Write body to file
+  write_result2 = CALL write out_fd body body_len
+  DISCARD write_result2
+
+  # Close output file
+  close_result = CALL close out_fd
+  DISCARD close_result
+
+  # Close client socket
+  close_client = CALL close-socket client_fd
+  DISCARD close_client
+
+  # Close server socket
+  close_server = CALL close-socket sock_fd
+  DISCARD close_server
+
+  # Print done message
+  msg2 = "Request processed, output written to output.txt"
+  CALL println msg2
+
+  SET status 0
+END

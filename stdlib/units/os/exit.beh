@@ -1,0 +1,11 @@
+BEHAVIOR exit
+
+DESCRIPTION
+  Terminates the process immediately with the given exit code. Does not return.
+
+CONTRACT
+  INPUT code int 8
+
+HASH 7a884795
+
+NATIVE

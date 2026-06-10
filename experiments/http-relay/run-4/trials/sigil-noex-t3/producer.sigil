@@ -1,0 +1,25 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  Reads input.txt and sends its contents as the body of an HTTP POST to
+  localhost:9813.
+
+ENTRY
+  # read input.txt
+  file = CALL read-file-all "input.txt"
+  # build the HTTP POST request around the body
+  req = CALL build-post file.data file.length
+  # open a TCP socket (AF_INET=2, SOCK_STREAM=1)
+  sock = CALL socket 2 1
+  # build sockaddr for 127.0.0.1:9813  (ip packed network order = 16777343)
+  addr = CALL make-sockaddr 9813 16777343
+  # connect
+  conn = CALL connect sock.fd addr.addr addr.addr_len
+  DISCARD conn.status
+  # send the request
+  sent = CALL send sock.fd req.req req.req_len
+  DISCARD sent.bytes_sent
+  # close
+  closed = CALL close-socket sock.fd
+  DISCARD closed.status
+END_EXECUTABLE

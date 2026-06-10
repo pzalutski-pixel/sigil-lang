@@ -1,0 +1,143 @@
+BEHAVIOR build-request
+
+DESCRIPTION
+  Builds a complete HTTP/1.1 POST request for the producer:
+  "POST / HTTP/1.1\r\nHost: localhost:9822\r\nContent-Length: <cl>\r\n\r\n<body>"
+  where <cl> is the decimal Content-Length text (cl/cl_len) and <body> is the
+  request body (body/body_len). req_len is the total request byte count.
+
+CONTRACT
+  INPUT cl bytes 32
+  INPUT cl_len int 8
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT req bytes 65536
+  OUTPUT req_len int 8
+  GUARANTEES writes_output
+
+HASH 6b5ef878
+
+IMPLEMENTATION
+  # Fixed prefix (55 bytes):
+  # POST / HTTP/1.1\r\nHost: localhost:9822\r\nContent-Length:
+  STORE req 80 1 0
+  STORE req 79 1 1
+  STORE req 83 1 2
+  STORE req 84 1 3
+  STORE req 32 1 4
+  STORE req 47 1 5
+  STORE req 32 1 6
+  STORE req 72 1 7
+  STORE req 84 1 8
+  STORE req 84 1 9
+  STORE req 80 1 10
+  STORE req 47 1 11
+  STORE req 49 1 12
+  STORE req 46 1 13
+  STORE req 49 1 14
+  STORE req 13 1 15
+  STORE req 10 1 16
+  STORE req 72 1 17
+  STORE req 111 1 18
+  STORE req 115 1 19
+  STORE req 116 1 20
+  STORE req 58 1 21
+  STORE req 32 1 22
+  STORE req 108 1 23
+  STORE req 111 1 24
+  STORE req 99 1 25
+  STORE req 97 1 26
+  STORE req 108 1 27
+  STORE req 104 1 28
+  STORE req 111 1 29
+  STORE req 115 1 30
+  STORE req 116 1 31
+  STORE req 58 1 32
+  STORE req 57 1 33
+  STORE req 56 1 34
+  STORE req 50 1 35
+  STORE req 50 1 36
+  STORE req 13 1 37
+  STORE req 10 1 38
+  STORE req 67 1 39
+  STORE req 111 1 40
+  STORE req 110 1 41
+  STORE req 116 1 42
+  STORE req 101 1 43
+  STORE req 110 1 44
+  STORE req 116 1 45
+  STORE req 45 1 46
+  STORE req 76 1 47
+  STORE req 101 1 48
+  STORE req 110 1 49
+  STORE req 103 1 50
+  STORE req 116 1 51
+  STORE req 104 1 52
+  STORE req 58 1 53
+  STORE req 32 1 54
+
+  pos = ALLOC 8 int
+  STORE pos 55 8
+
+  # Append the Content-Length digits
+  ci = ALLOC 8 int
+  STORE ci 0 8
+
+  LABEL cl_loop
+    cidx = LOAD ci 8
+    clen = LOAD cl_len 8
+    cl_done = IGE cidx clen 8
+    BRANCH cl_done cl_end cl_copy
+
+  LABEL cl_copy
+    cidx = LOAD ci 8
+    cb = LOAD cl 1 cidx
+    p = LOAD pos 8
+    STORE req cb 1 p
+    np = IADD p 1 8
+    STORE pos np 8
+    ncidx = IADD cidx 1 8
+    STORE ci ncidx 8
+    JUMP cl_loop
+
+  LABEL cl_end
+    # Append \r\n\r\n
+    p = LOAD pos 8
+    STORE req 13 1 p
+    p = IADD p 1 8
+    STORE req 10 1 p
+    p = IADD p 1 8
+    STORE req 13 1 p
+    p = IADD p 1 8
+    STORE req 10 1 p
+    p = IADD p 1 8
+    STORE pos p 8
+
+    # Append the body
+    bi = ALLOC 8 int
+    STORE bi 0 8
+
+  LABEL body_loop
+    bidx = LOAD bi 8
+    blen = LOAD body_len 8
+    body_done = IGE bidx blen 8
+    BRANCH body_done body_end body_copy
+
+  LABEL body_copy
+    bidx = LOAD bi 8
+    bb = LOAD body 1 bidx
+    p = LOAD pos 8
+    STORE req bb 1 p
+    np = IADD p 1 8
+    STORE pos np 8
+    nbidx = IADD bidx 1 8
+    STORE bi nbidx 8
+    JUMP body_loop
+
+  LABEL body_end
+    p = LOAD pos 8
+    STORE req_len p 8
+    FREE pos
+    FREE ci
+    FREE bi
+END

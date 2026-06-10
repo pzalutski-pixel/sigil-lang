@@ -1,0 +1,18 @@
+BEHAVIOR is-non-positive
+
+DESCRIPTION
+  Checks if an integer value is non-positive (less than or equal to 0).
+  Returns 1 if value <= 0, 0 otherwise.
+
+CONTRACT
+  INPUT value int 8
+  OUTPUT result int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH b15b0b3a
+
+IMPLEMENTATION
+  v = LOAD value 8
+  is_non_pos = ILE v 0 8
+  STORE result is_non_pos 8
+END

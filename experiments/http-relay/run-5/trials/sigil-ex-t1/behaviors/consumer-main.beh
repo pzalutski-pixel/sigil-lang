@@ -1,0 +1,49 @@
+BEHAVIOR consumer-main
+
+DESCRIPTION
+  Listens on TCP port 9821 for one HTTP POST, extracts the request body,
+  prepends a timestamp and " PROCESSED BY CONSUMER\n", and writes the result
+  to output.txt.
+
+CONTRACT
+  OUTPUT status int 8
+  REQUIRES socket@0fec0e0c bind-9821@aeecef12 listen@95b7eb35 accept@e88849be receive@2ae7614b now@cee78134 format-time@83ebda2d build-output@d350f6fb write-file-all@b17d9aa8 close-socket@d4ba30e5 println@a273ebb3
+  GUARANTEES writes_output
+
+HASH eef289ef
+
+COMPOSITION
+  sock_result = CALL socket 2 1
+  sock_fd = sock_result.fd
+
+  bind_result = CALL bind-9821 sock_fd
+  DISCARD bind_result
+
+  listen_result = CALL listen sock_fd 10
+  DISCARD listen_result
+
+  msg = "Consumer listening on port 9821"
+  CALL println msg
+
+  accept_result = CALL accept sock_fd
+  client_fd = accept_result.client_fd
+  DISCARD accept_result.client_addr
+  DISCARD accept_result.addr_len
+
+  recv_result = CALL receive client_fd 65536
+
+  ts_result = CALL now
+  ft_result = CALL format-time ts_result.timestamp
+  DISCARD ft_result.length
+
+  built = CALL build-output recv_result.buffer recv_result.bytes_received ft_result.formatted
+
+  path = "output.txt"
+  wr = CALL write-file-all path built.out built.out_len
+  DISCARD wr.bytes_written
+
+  close_result = CALL close-socket client_fd
+  DISCARD close_result
+
+  SET status 0
+END

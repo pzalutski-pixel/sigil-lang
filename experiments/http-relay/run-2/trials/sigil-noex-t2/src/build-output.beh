@@ -1,0 +1,98 @@
+BEHAVIOR build-output
+DESCRIPTION
+  Assembles: timestamp + " PROCESSED BY CONSUMER\n" + body into result.
+CONTRACT
+  INPUT ts bytes 32
+  INPUT ts_len int 8
+  INPUT body bytes 65536
+  INPUT body_len int 8
+  OUTPUT result bytes 65536
+  OUTPUT result_len int 8
+HASH 5880f8ee
+IMPLEMENTATION
+    iptr = ALLOC 8 int
+    tslen = LOAD ts_len 8
+    blen = LOAD body_len 8
+    STORE iptr 0 8
+
+    LABEL tscopy
+      i = LOAD iptr 8
+      tdone = IGE i tslen 8
+      BRANCH tdone tsdone tsbyte
+
+    LABEL tsbyte
+      v = LOAD ts 1 i
+      STORE result v 1 i
+      ni = IADD i 1 8
+      STORE iptr ni 8
+      JUMP tscopy
+
+    LABEL tsdone
+      off0 = IADD tslen 0 8
+      STORE result 32 1 off0
+      off1 = IADD tslen 1 8
+      STORE result 80 1 off1
+      off2 = IADD tslen 2 8
+      STORE result 82 1 off2
+      off3 = IADD tslen 3 8
+      STORE result 79 1 off3
+      off4 = IADD tslen 4 8
+      STORE result 67 1 off4
+      off5 = IADD tslen 5 8
+      STORE result 69 1 off5
+      off6 = IADD tslen 6 8
+      STORE result 83 1 off6
+      off7 = IADD tslen 7 8
+      STORE result 83 1 off7
+      off8 = IADD tslen 8 8
+      STORE result 69 1 off8
+      off9 = IADD tslen 9 8
+      STORE result 68 1 off9
+      off10 = IADD tslen 10 8
+      STORE result 32 1 off10
+      off11 = IADD tslen 11 8
+      STORE result 66 1 off11
+      off12 = IADD tslen 12 8
+      STORE result 89 1 off12
+      off13 = IADD tslen 13 8
+      STORE result 32 1 off13
+      off14 = IADD tslen 14 8
+      STORE result 67 1 off14
+      off15 = IADD tslen 15 8
+      STORE result 79 1 off15
+      off16 = IADD tslen 16 8
+      STORE result 78 1 off16
+      off17 = IADD tslen 17 8
+      STORE result 83 1 off17
+      off18 = IADD tslen 18 8
+      STORE result 85 1 off18
+      off19 = IADD tslen 19 8
+      STORE result 77 1 off19
+      off20 = IADD tslen 20 8
+      STORE result 69 1 off20
+      off21 = IADD tslen 21 8
+      STORE result 82 1 off21
+      off22 = IADD tslen 22 8
+      STORE result 10 1 off22
+
+    bodystart = IADD tslen 23 8
+    STORE iptr 0 8
+
+    LABEL bodycopy
+      j = LOAD iptr 8
+      bdone = IGE j blen 8
+      BRANCH bdone bodydone bodybyte
+
+    LABEL bodybyte
+      dstoff = IADD bodystart j 8
+      bv = LOAD body 1 j
+      STORE result bv 1 dstoff
+      nj = IADD j 1 8
+      STORE iptr nj 8
+      JUMP bodycopy
+
+    LABEL bodydone
+      total = IADD bodystart blen 8
+      STORE result_len total 8
+      FREE iptr
+END

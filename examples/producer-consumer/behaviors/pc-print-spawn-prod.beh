@@ -1,0 +1,11 @@
+BEHAVIOR pc-print-spawn-prod
+
+CONTRACT
+  REQUIRES println@a273ebb3
+
+HASH d09682ea
+
+COMPOSITION
+  msg = "Spawning producer (10 items starting at 0)..."
+  CALL println msg
+END

@@ -1,0 +1,15 @@
+BEHAVIOR exists
+
+DESCRIPTION
+  Checks if a file exists at the given path.
+  Returns 1 if file exists, 0 if not.
+  Does not check permissions or file type.
+
+CONTRACT
+  INPUT path string
+  OUTPUT result int 8
+  GUARANTEES writes_output
+
+HASH 1d19bcba
+
+NATIVE

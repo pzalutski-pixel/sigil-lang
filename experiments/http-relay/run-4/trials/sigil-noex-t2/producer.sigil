@@ -1,0 +1,28 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  Reads input.txt and sends its contents as the body of one HTTP POST to
+  localhost:9812. The header and body are sent as two separate sends, so the
+  consumer reliably reads the header on its first recv and the body on its
+  second. After sending, the producer blocks on a receive so the connection
+  stays open (no abortive close discarding unread data) until the consumer has
+  read everything and closed its end; only then does the producer close.
+
+ENTRY
+  pathin = "input.txt"
+  file = CALL read-file-all pathin
+  hdr = CALL t2-build-header
+  sock = CALL socket 2 1
+  sa = CALL make-sockaddr 9812 16777343
+  CALL connect sock.fd sa.addr sa.addr_len -> cstatus
+  DISCARD cstatus
+  CALL send sock.fd hdr.header hdr.length -> sent1
+  DISCARD sent1
+  CALL send sock.fd file.data file.length -> sent2
+  DISCARD sent2
+  ack = CALL receive sock.fd 16
+  DISCARD ack.buffer
+  DISCARD ack.bytes_received
+  CALL close-socket sock.fd -> cs
+  DISCARD cs
+END_EXECUTABLE

@@ -1,0 +1,24 @@
+EXECUTABLE consumer
+
+DESCRIPTION
+  Listens on port 9816 for one HTTP POST, prepends a timestamp and a
+  PROCESSED BY CONSUMER line to the body, writes result to output.txt.
+
+ENTRY
+  CALL socket 2 1 -> fd
+  CALL addr-server -> addr, alen
+  CALL bind fd addr alen -> bstat
+  CALL listen fd 1 -> lstat
+  CALL accept fd -> cfd, caddr, calen
+  CALL receive cfd 65536 -> req, rlen
+  CALL now -> ts
+  CALL format-time ts -> fmt, fmtlen
+  CALL extract-body req rlen -> body, blen
+  CALL assemble-output fmt fmtlen body blen -> result, total
+  CALL path-output -> opath, opathlen
+  CALL open opath 3 -> ofd
+  CALL write ofd result total -> wn
+  CALL close ofd -> cstat
+  CALL close-socket cfd -> ccstat
+  CALL close-socket fd -> scstat
+END_EXECUTABLE

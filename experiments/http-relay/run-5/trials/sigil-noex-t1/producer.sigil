@@ -1,0 +1,19 @@
+EXECUTABLE producer
+
+DESCRIPTION
+  Reads input.txt and POSTs its contents to localhost:9811 over HTTP.
+
+ENTRY
+  path = "input.txt"
+  rf = CALL read-file-all path
+  clen = CALL int-to-string rf.length
+  req = CALL build-http-post rf.data rf.length clen.str clen.length
+  sock = CALL socket 2 1
+  addr = CALL make-sockaddr 9811 16777343
+  cstat = CALL connect sock.fd addr.addr addr.addr_len
+  DISCARD cstat.status
+  snd = CALL send sock.fd req.out req.out_len
+  DISCARD snd.bytes_sent
+  cs = CALL close-socket sock.fd
+  DISCARD cs.status
+END_EXECUTABLE

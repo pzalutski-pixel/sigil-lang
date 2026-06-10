@@ -1,0 +1,15 @@
+BEHAVIOR close
+
+DESCRIPTION
+  Closes a file descriptor.
+  Returns 0 on success, negative on error.
+  File descriptor should not be used after close.
+
+CONTRACT
+  INPUT fd int 8
+  OUTPUT status int 8
+  GUARANTEES writes_output
+
+HASH d4ba30e5
+
+NATIVE

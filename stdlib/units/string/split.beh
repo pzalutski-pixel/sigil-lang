@@ -1,0 +1,177 @@
+BEHAVIOR split
+
+DESCRIPTION
+  Splits a byte sequence by delimiter into array of sequences.
+  Result format: count (8 bytes) + array of (offset, length) pairs.
+  Each pair is 16 bytes (8 + 8). References original data.
+
+CONTRACT
+  INPUT data bytes 65536
+  INPUT delimiter bytes 256
+  OUTPUT parts bytes 8192
+  GUARANTEES writes_output
+
+HASH 84dd3d2d
+
+IMPLEMENTATION
+  delim_len = ALLOC 8 int
+  STORE delim_len 0 8
+  data_len = ALLOC 8 int
+  STORE data_len 0 8
+  count = ALLOC 8 int
+  STORE count 0 8
+  part_start = ALLOC 8 int
+  STORE part_start 0 8
+  pos = ALLOC 8 int
+  STORE pos 0 8
+  max_parts = ALLOC 8 int
+  STORE max_parts 511 8
+  match_idx = ALLOC 8 int
+  STORE match_idx 0 8
+
+  LABEL get_delim_len
+    dl_val = LOAD delim_len 8
+    byte = LOAD delimiter 1 dl_val
+    is_null = IEQ byte 0 1
+    BRANCH is_null delim_len_done inc_delim
+
+  LABEL inc_delim
+    dl_val = LOAD delim_len 8
+    new_dl = IADD dl_val 1 8
+    STORE delim_len new_dl 8
+    at_max = IGE new_dl 256 8
+    BRANCH at_max delim_len_done get_delim_len
+
+  LABEL delim_len_done
+    STORE data_len 0 8
+
+  LABEL get_data_len
+    dtl_val = LOAD data_len 8
+    byte = LOAD data 1 dtl_val
+    is_null = IEQ byte 0 1
+    BRANCH is_null data_len_done inc_data
+
+  LABEL inc_data
+    dtl_val = LOAD data_len 8
+    new_dtl = IADD dtl_val 1 8
+    STORE data_len new_dtl 8
+    at_max = IGE new_dtl 65536 8
+    BRANCH at_max data_len_done get_data_len
+
+  LABEL data_len_done
+    dl_val = LOAD delim_len 8
+    empty_delim = IEQ dl_val 0 8
+    BRANCH empty_delim single_part start_split
+
+  LABEL single_part
+    STORE parts 1 8 0
+    STORE parts 0 8 8
+    dtl_val = LOAD data_len 8
+    STORE parts dtl_val 8 16
+    JUMP done
+
+  LABEL start_split
+    STORE count 0 8
+    STORE part_start 0 8
+    STORE pos 0 8
+
+  LABEL scan_loop
+    p_val = LOAD pos 8
+    dtl_val = LOAD data_len 8
+    at_end = IGE p_val dtl_val 8
+    BRANCH at_end add_final_part check_for_delim
+
+  LABEL check_for_delim
+    dtl_val = LOAD data_len 8
+    p_val = LOAD pos 8
+    remaining = ISUB dtl_val p_val 8
+    dl_val = LOAD delim_len 8
+    not_enough = ILT remaining dl_val 8
+    BRANCH not_enough no_match_here try_match_delim
+
+  LABEL try_match_delim
+    STORE match_idx 0 8
+
+  LABEL match_delim_loop
+    mi_val = LOAD match_idx 8
+    dl_val = LOAD delim_len 8
+    matched_all = IGE mi_val dl_val 8
+    BRANCH matched_all found_delim check_delim_byte
+
+  LABEL check_delim_byte
+    p_val = LOAD pos 8
+    mi_val = LOAD match_idx 8
+    data_idx = IADD p_val mi_val 8
+    data_byte = LOAD data 1 data_idx
+    delim_byte = LOAD delimiter 1 mi_val
+    bytes_eq = IEQ data_byte delim_byte 1
+    BRANCH bytes_eq next_delim_byte no_match_here
+
+  LABEL next_delim_byte
+    mi_val = LOAD match_idx 8
+    new_mi = IADD mi_val 1 8
+    STORE match_idx new_mi 8
+    JUMP match_delim_loop
+
+  LABEL found_delim
+    c_val = LOAD count 8
+    mp_val = LOAD max_parts 8
+    too_many = IGE c_val mp_val 8
+    BRANCH too_many add_final_part add_part
+
+  LABEL add_part
+    p_val = LOAD pos 8
+    ps_val = LOAD part_start 8
+    part_len = ISUB p_val ps_val 8
+    c_val = LOAD count 8
+    parts_offset = IMUL c_val 16 8
+    parts_offset = IADD parts_offset 8 8
+    STORE parts ps_val 8 parts_offset
+    offset_plus_8 = IADD parts_offset 8 8
+    STORE parts part_len 8 offset_plus_8
+    new_c = IADD c_val 1 8
+    STORE count new_c 8
+    dl_val = LOAD delim_len 8
+    new_pos = IADD p_val dl_val 8
+    STORE pos new_pos 8
+    STORE part_start new_pos 8
+    JUMP scan_loop
+
+  LABEL no_match_here
+    p_val = LOAD pos 8
+    new_p = IADD p_val 1 8
+    STORE pos new_p 8
+    JUMP scan_loop
+
+  LABEL add_final_part
+    c_val = LOAD count 8
+    mp_val = LOAD max_parts 8
+    too_many = IGE c_val mp_val 8
+    BRANCH too_many store_count add_final
+
+  LABEL add_final
+    dtl_val = LOAD data_len 8
+    ps_val = LOAD part_start 8
+    part_len = ISUB dtl_val ps_val 8
+    c_val = LOAD count 8
+    parts_offset = IMUL c_val 16 8
+    parts_offset = IADD parts_offset 8 8
+    STORE parts ps_val 8 parts_offset
+    offset_plus_8 = IADD parts_offset 8 8
+    STORE parts part_len 8 offset_plus_8
+    new_c = IADD c_val 1 8
+    STORE count new_c 8
+
+  LABEL store_count
+    c_val = LOAD count 8
+    STORE parts c_val 8 0
+
+  LABEL done
+    FREE delim_len
+    FREE data_len
+    FREE count
+    FREE part_start
+    FREE pos
+    FREE max_parts
+    FREE match_idx
+END

@@ -1,0 +1,135 @@
+BEHAVIOR base64-decode
+
+DESCRIPTION
+  Decodes standard Base64 (RFC 4648) text (the first len bytes of data, len a
+  multiple of 4) into raw bytes; writes the byte count to length. '=' padding
+  shortens the final group (one '=' -> 2 bytes, two '=' -> 1 byte). A 256-entry
+  reverse table (char -> 6-bit value) is built once in scratch. Round-trips
+  base64-encode: "TWFu"->"Man", "TWE="->"Ma", "TQ=="->"M".
+
+CONTRACT
+  INPUT data bytes 131072
+  INPUT len int 8
+  OUTPUT result bytes 98304
+  OUTPUT length int 8
+  GUARANTEES writes_output
+
+HASH 2e8fe0c2
+
+IMPLEMENTATION
+  lenv = LOAD len 8
+  rev = ALLOC 256 bytes
+  k = 0
+  LABEL zfill
+    zd = IGE k 256 8
+    BRANCH zd zfille zfillb
+  LABEL zfillb
+    STORE rev 0 1 k
+    k = IADD k 1 8
+    JUMP zfill
+  LABEL zfille
+  k = 0
+  LABEL rAZ
+    d1 = IGE k 26 8
+    BRANCH d1 rAZe rAZb
+  LABEL rAZb
+    voff = IADD k 65 8
+    STORE rev k 1 voff
+    k = IADD k 1 8
+    JUMP rAZ
+  LABEL rAZe
+  k = 0
+  LABEL raz
+    d2 = IGE k 26 8
+    BRANCH d2 raze razb
+  LABEL razb
+    val = IADD k 26 8
+    voff = IADD k 97 8
+    STORE rev val 1 voff
+    k = IADD k 1 8
+    JUMP raz
+  LABEL raze
+  k = 0
+  LABEL r09
+    d3 = IGE k 10 8
+    BRANCH d3 r09e r09b
+  LABEL r09b
+    val = IADD k 52 8
+    voff = IADD k 48 8
+    STORE rev val 1 voff
+    k = IADD k 1 8
+    JUMP r09
+  LABEL r09e
+  STORE rev 62 1 43
+  STORE rev 63 1 47
+  STORE result 0 1 0
+  i = 0
+  o = 0
+  LABEL loop
+    rem = ISUB lenv i 8
+    done = ILT rem 4 8
+    BRANCH done fin body
+  LABEL body
+    c0 = LOAD data 1 i
+    c0 = AND c0 255 8
+    i1 = IADD i 1 8
+    c1 = LOAD data 1 i1
+    c1 = AND c1 255 8
+    i2 = IADD i 2 8
+    c2 = LOAD data 1 i2
+    c2 = AND c2 255 8
+    i3 = IADD i 3 8
+    c3 = LOAD data 1 i3
+    c3 = AND c3 255 8
+    v0 = LOAD rev 1 c0
+    v0 = AND v0 255 8
+    v1 = LOAD rev 1 c1
+    v1 = AND v1 255 8
+    isp2 = IEQ c2 61 8
+    isp3 = IEQ c3 61 8
+    BRANCH isp2 v2zero v2real
+  LABEL v2real
+    v2 = LOAD rev 1 c2
+    v2 = AND v2 255 8
+    JUMP afterv2
+  LABEL v2zero
+    v2 = 0
+  LABEL afterv2
+    BRANCH isp3 v3zero v3real
+  LABEL v3real
+    v3 = LOAD rev 1 c3
+    v3 = AND v3 255 8
+    JUMP afterv3
+  LABEL v3zero
+    v3 = 0
+  LABEL afterv3
+    hb0 = SHL v0 2 8
+    lb0 = SHR v1 4 8
+    byte0 = OR hb0 lb0 8
+    byte0 = AND byte0 255 8
+    STORE result byte0 1 o
+    o = IADD o 1 8
+    BRANCH isp2 skip emit1
+  LABEL emit1
+    hb1 = AND v1 15 8
+    hb1 = SHL hb1 4 8
+    lb1 = SHR v2 2 8
+    byte1 = OR hb1 lb1 8
+    byte1 = AND byte1 255 8
+    STORE result byte1 1 o
+    o = IADD o 1 8
+    BRANCH isp3 skip emit2
+  LABEL emit2
+    hb2 = AND v2 3 8
+    hb2 = SHL hb2 6 8
+    byte2 = OR hb2 v3 8
+    byte2 = AND byte2 255 8
+    STORE result byte2 1 o
+    o = IADD o 1 8
+  LABEL skip
+    i = IADD i 4 8
+    JUMP loop
+  LABEL fin
+    STORE length o 8
+    FREE rev
+END

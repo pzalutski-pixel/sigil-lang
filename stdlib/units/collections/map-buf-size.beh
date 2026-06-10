@@ -1,0 +1,20 @@
+BEHAVIOR map-buf-size
+
+DESCRIPTION
+  Bytes a caller must provide to back a hash map of `cap` slots: an 8-byte
+  header ([cap:8]) plus cap * 337-byte slots (slot = used:1 + key_len:8 +
+  key:64 + val_len:8 + val:256). Use it to size the MEMORY region for map-*.
+
+CONTRACT
+  INPUT cap int 8
+  OUTPUT size int 8
+  GUARANTEES pure no_alloc writes_output
+
+HASH 694a01ba
+
+IMPLEMENTATION
+  cv = LOAD cap 8
+  e = IMUL cv 337 8
+  s = IADD e 8 8
+  STORE size s 8
+END

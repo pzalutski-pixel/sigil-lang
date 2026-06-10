@@ -1,0 +1,43 @@
+BEHAVIOR make-addr-9815
+
+DESCRIPTION
+  Creates sockaddr_in structure for port 9815 on all interfaces.
+  Returns 128-byte buffer with sockaddr_in at start.
+
+CONTRACT
+  OUTPUT addr bytes 128
+  GUARANTEES writes_output
+
+HASH 00f67ec4
+
+IMPLEMENTATION
+  # Zero the entire output buffer first (128 bytes in chunks)
+  zero = 0
+  STORE addr zero 8 0
+  STORE addr zero 8 8
+  STORE addr zero 8 16
+  STORE addr zero 8 24
+  STORE addr zero 8 32
+  STORE addr zero 8 40
+  STORE addr zero 8 48
+  STORE addr zero 8 56
+  STORE addr zero 8 64
+  STORE addr zero 8 72
+  STORE addr zero 8 80
+  STORE addr zero 8 88
+  STORE addr zero 8 96
+  STORE addr zero 8 104
+  STORE addr zero 8 112
+  STORE addr zero 8 120
+
+  # sin_family = AF_INET (2) - bytes 0-1
+  family = 2
+  STORE addr family 2 0
+
+  # sin_port = htons(9815). 9815 = 0x2657 => network byte order bytes 0x26, 0x57
+  # byte 2 = 0x26 (38), byte 3 = 0x57 (87)
+  port_hi = 38
+  port_lo = 87
+  STORE addr port_hi 1 2
+  STORE addr port_lo 1 3
+END
