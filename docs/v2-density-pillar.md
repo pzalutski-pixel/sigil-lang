@@ -99,16 +99,27 @@ intuition.
    the same verified primitive graph — the candidates' binding constraints
    (C1–C13) are the existing statement of this. Density never bypasses a
    check.
-5. **Inference flows from the contract into the implementation — never out of
-   the contract.** A size or type stated once in the CONTRACT should not be
-   restated in expression code (the candidates' type-inference design). The
-   contract itself stays explicit: inferring GUARANTEES is rejected (it would
-   thin the artifact that checkability and cold-start navigation live in), and
-   hash pins stay authored — the *value* is tool-computed (`--hash`), but
-   writing it is deliberate, because auto-writing pins would silently re-pin
-   the very drift the hash exists to catch (run-3, finding 7). The precedent
-   for removing a contract token is `string`'s no-size rule (Reference §2.5):
-   a token may go only when the information remains fully present.
+5. **Inference into the implementation — yes; inference out of the contract —
+   OPEN.** The uncontroversial half: a size or type stated once in the CONTRACT
+   should not be restated in expression code (the candidates' type-inference
+   design); that flows *from* the contract *into* the body and thins nothing.
+   The contested half is the contract itself, and this document deliberately
+   does not decide it. The original draft of this pillar proposed inferring
+   "common GUARANTEES" to save authored tokens — but guarantees *are* contract
+   content and are hashed, so this collides with the pillar's own
+   contracts-stay-explicit rule. Concretely: deriving guarantees from the body
+   would let an implementation edit move a contract hash (today, body-only
+   edits never force dependents to re-pin), and it reverses the contract-first
+   direction for that slice of the contract — the contract stops being purely a
+   promise and becomes partly a description. How to handle this — full
+   declaration as today, tool-suggested-but-author-written, or defaults with
+   opt-out for near-universal guarantees — is an **open design question for the
+   V2 design sessions, recorded here only as a question.** Two fixed points any
+   resolution can build on: hash pins stay deliberately authored even though
+   the value is tool-computed (the run-3 decision — auto-writing pins would
+   silently re-pin the drift the hash exists to catch), and `string`'s no-size
+   rule (Reference §2.5) shows when a contract token may legitimately go: only
+   when the information remains fully present.
 6. **Tokenizer-aware keyword and operator selection.** Candidates tested
    against the tokenizer basket; single-token forms preferred — while staying
    CFG-expressible, since the grammar must still publish as EBNF/GBNF for
@@ -121,6 +132,21 @@ untouched — the acceptance bar below requires zero reduction versus v1. It is
 also orthogonal to the authoring *mode*: the graph-native study found graph
 text and v2 text token-neutral (~385 tokens either way), so the density lever
 is the expression layer, which both modes share for implementation bodies.
+
+## What this pillar does NOT decide
+
+This document sets the objective and the measurement discipline. It does not
+make the design decisions; those happen in design sessions, judged against the
+measurements above. Open as of this writing:
+
+- **Guarantee handling** (implication 5 — declared vs. tool-suggested vs.
+  defaulted): the first session topic.
+- **The grammar itself**: [v2-grammar-candidates.md](v2-grammar-candidates.md)
+  collects the options; none is chosen.
+- **Scalars-as-values semantics** (implication 2): direction named by the
+  experiments, design not done.
+- **The tokenizer basket composition** and **the numeric target** (the ≤2× is
+  provisional, not derived).
 
 ## The governing tension — and the frontier
 
