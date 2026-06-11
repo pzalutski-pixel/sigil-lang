@@ -71,10 +71,12 @@ vocabulary decides what is actually cheap:
   robustly cheap across the basket, not when it exploits one vocabulary's
   quirk.
 
-This is the genuinely AI-native design criterion — no mainstream language was
-ever designed against a tokenizer — and it is a sharper distinctive claim than
-the original "translation tax," which testing demoted to a motivating
-intuition.
+This is the genuinely AI-native design criterion, with the instrument and the
+goal kept distinct: the tokenizer is the *measuring device*; the objective is
+the optimum density at which an AI uses the language effectively — and no
+mainstream language has ever had its syntax settled by measuring that. It is a
+sharper distinctive claim than the original "translation tax," which testing
+demoted to a motivating intuition.
 
 ## Design implications for V2
 
