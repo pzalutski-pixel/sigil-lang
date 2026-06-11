@@ -17,25 +17,18 @@ IMPLEMENTATION
   # Get length of first string
   len1 = ALLOC 8 int
   STORE len1 0 8
-  max = ALLOC 8 int
-  STORE max 65536 8
 
   LABEL get_len1
     l1_val = LOAD len1 8
     byte = LOAD first 1 l1_val
-    zero = ALLOC 1 int
-    STORE zero 0 1
-    zero_val = LOAD zero 1
-    FREE zero
-    is_null = IEQ byte zero_val 1
+    is_null = IEQ byte 0 1
     BRANCH is_null len1_done inc_len1
 
   LABEL inc_len1
     l1_val = LOAD len1 8
     new_l1 = IADD l1_val 1 8
     STORE len1 new_l1 8
-    max_val = LOAD max 8
-    at_max = IGE new_l1 max_val 8
+    at_max = IGE new_l1 65536 8
     BRANCH at_max len1_done get_len1
 
   LABEL len1_done
@@ -46,19 +39,14 @@ IMPLEMENTATION
   LABEL get_len2
     l2_val = LOAD len2 8
     byte = LOAD second 1 l2_val
-    zero = ALLOC 1 int
-    STORE zero 0 1
-    zero_val = LOAD zero 1
-    FREE zero
-    is_null = IEQ byte zero_val 1
+    is_null = IEQ byte 0 1
     BRANCH is_null len2_done inc_len2
 
   LABEL inc_len2
     l2_val = LOAD len2 8
     new_l2 = IADD l2_val 1 8
     STORE len2 new_l2 8
-    max_val = LOAD max 8
-    at_max = IGE new_l2 max_val 8
+    at_max = IGE new_l2 65536 8
     BRANCH at_max len2_done get_len2
 
   LABEL len2_done
@@ -105,16 +93,11 @@ IMPLEMENTATION
     l1_val = LOAD len1 8
     l2_val = LOAD len2 8
     total_len = IADD l1_val l2_val 8
-    zero_term = ALLOC 1 int
-    STORE zero_term 0 1
-    zt_val = LOAD zero_term 1
-    FREE zero_term
-    STORE result zt_val 1 total_len
+    STORE result 0 1 total_len
 
     # Cleanup
     FREE len1
     FREE len2
-    FREE max
     FREE i
     FREE j
 END

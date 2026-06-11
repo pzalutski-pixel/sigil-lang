@@ -16,14 +16,10 @@ IMPLEMENTATION
   count = ALLOC 8 int
   STORE count 0 8
 
-  max = ALLOC 8 int
-  STORE max 65536 8
-
   LABEL scan_loop
     # Check if we've reached max
     count_val = LOAD count 8
-    max_val = LOAD max 8
-    at_max = IGE count_val max_val 8
+    at_max = IGE count_val 65536 8
     BRANCH at_max done scan_continue
 
   LABEL scan_continue
@@ -32,11 +28,7 @@ IMPLEMENTATION
     byte = LOAD data 1 count_val
 
     # Check if null terminator
-    zero = ALLOC 1 int
-    STORE zero 0 1
-    zero_val = LOAD zero 1
-    FREE zero
-    is_null = IEQ byte zero_val 1
+    is_null = IEQ byte 0 1
     BRANCH is_null done increment
 
   LABEL increment
@@ -49,5 +41,4 @@ IMPLEMENTATION
     final_count = LOAD count 8
     STORE len final_count 8
     FREE count
-    FREE max
 END
