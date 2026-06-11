@@ -5,7 +5,9 @@ expression layer, structured error handling, transitive guarantees) that would s
 lower to the same checked graph. **None of these is chosen or built:** the shipped
 language is the v1 grammar in [SIGIL-LANGUAGE-REFERENCE.md](SIGIL-LANGUAGE-REFERENCE.md),
 and every token count here is an **estimate**, not a measurement. This is the idea
-space, not a decision.
+space, not a decision. The criterion any candidate should ultimately be judged by —
+program-text tokens measured with real tokenizers, traded against cold-start
+learnability — is proposed in [v2-density-pillar.md](v2-density-pillar.md).
 
 ---
 
@@ -52,8 +54,8 @@ All three candidates share a common foundation shared across the candidates. The
 - `.failed` field auto-generated on calls to failable behaviors
 - `pure` guarantee made transitive (fixes compositionality gap)
 - `writes_output` extended: success paths write all outputs, error paths write all errors
-- `no_alloc` dropped (misleading name, conflicts with expression temporaries, known bug)
-- `string` alias for `bytes` (cosmetic, same hash byte)
+- `no_alloc` dropped (misleading name; conflicts with expression temporaries — the v1 check bug once cited as a third reason has since been fixed, see [STATUS.md](STATUS.md))
+- `string` carried over from v1, which has since made it a first-class self-describing interpretation with its own hash byte 0x04 (Reference §2.5) — for v2 it is inherited, not added
 - `memory` clause moved from contract to implementation block
 - Hash algorithm extended with ERRORS section
 - `hash` line remains explicit — compiler computes the hash and provides it; AI copies it into source (AI can't compute SHA-256 but can copy a string)
@@ -90,7 +92,7 @@ The expression-layer design proposed heap-promoting mutable loop variables. The 
 **Tension 4: `no_alloc` — dropped vs transitive.**
 The contract redesign dropped it. The decidability check approved transitive `no_alloc` if kept.
 
-*Resolution:* Dropped in all candidates. Rationale: (1) the name is misleading, (2) expression temporaries may require compiler-generated allocation, (3) v1 has a known bug in the check. If needed later, re-add as `stack_only` with correct semantics once the expression model stabilizes.
+*Resolution:* Dropped in all candidates. Rationale: (1) the name is misleading, (2) expression temporaries may require compiler-generated allocation. (A third reason recorded at the time — a v1 bug in the check — no longer holds: the scoped-ALLOC bug was fixed and `no_alloc` is enforced; see [STATUS.md](STATUS.md).) If needed later, re-add as `stack_only` with correct semantics once the expression model stabilizes.
 
 **Tension 5: CALL-in-expressions.**
 The expression-layer design didn't include it. The decidability check conditionally vetoed it.
@@ -107,7 +109,7 @@ The expression-layer design didn't include it. The decidability check conditiona
 
 - No break/continue (single loop exit through condition only)
 - No CALL in expressions (statement-level only)
-- No new types beyond v1's {int, float, bytes} + string alias
+- No new types beyond v1's {int, float, bytes, string}
 - No pipeline syntax
 - No for loops (while only)
 - All decidability check conditions met trivially
@@ -936,7 +938,7 @@ All candidates use this hash algorithm:
 | `int` | 0x01 |
 | `float` | 0x02 |
 | `bytes` | 0x03 |
-| `string` | 0x03 (alias for bytes) |
+| `string` | 0x04 (first-class in v1) |
 | `bool` | 0x01 (alias for int) |
 
 | Guarantee | guarantee_byte |

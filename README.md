@@ -328,6 +328,7 @@ This is a first pass, and it points somewhere specific — each run was instrume
 - [Implementation Status](docs/STATUS.md) — what is done, partial, or design-only
 - [Language Reference](docs/SIGIL-LANGUAGE-REFERENCE.md) — grammar and semantics
 - Design spec — [Primitives](docs/spec/PRIMITIVE-LAYER.md) · [Types](docs/spec/TYPE-SYSTEM.md) · [Memory](docs/spec/MEMORY-MODEL.md) · [Composition](docs/spec/COMPOSITION.md) · [Contracts](docs/spec/CONTRACT-SCHEMA.md) · [Graph format](docs/spec/GRAPH-FORMAT.md) · [Project structure](docs/spec/PROJECT-STRUCTURE.md) · [Safety](docs/spec/SAFETY-RULES.md) · [Concurrency](docs/spec/CONCURRENCY.md)
+- [V2 ideas](docs/V2-ROADMAP.md) — where v1 points next, including the proposed [token-space density objective](docs/v2-density-pillar.md)
 - [Experiments](experiments/) — methodology, per-run results, and raw transcripts
 
 ## License

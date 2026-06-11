@@ -196,7 +196,7 @@ Two things are assembled rather than borrowed: the combination of all of the abo
 
 This is a first iteration, and its measurements point the same way the arguments do — these are the next things to build, not gaps in a finished thing:
 
-1. **A denser surface syntax** — expressions and ordinary control flow restored on top of the primitives, lowering unambiguously to the same checked graph. This addresses §2: ergonomics stay gone, compression returns.
+1. **A denser surface syntax** — expressions and ordinary control flow restored on top of the primitives, lowering unambiguously to the same checked graph. This addresses §2: ergonomics stay gone, compression returns. The measurement discipline proposed for it — density in the authoring model's token space, contracts explicit, implementations dense — is [the V2 density pillar](v2-density-pillar.md).
 2. **A graph-native authoring interface** — the model mutating the behavior graph through direct validated steps instead of emitting its text serialization. This changes how the graph is *written*, not what it is: the compiler already builds and verifies the content-addressed graph today (§3). It is an ergonomic for a token-emitting author, not a missing foundation.
 3. **Full edge-level gap detection** — the outputs-consumed half already ships (§5.3): a composition's every CALL output must be routed or explicitly discarded (E0511), and inputs are checked via CALL arguments. What remains is materializing the composition's wiring as explicit graph edges so the general gap detector (`graph/gaps.rs`, built and tested) runs over them, rather than the implicit text-reconstructed wiring V1 uses.
 

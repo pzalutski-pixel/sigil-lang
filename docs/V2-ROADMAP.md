@@ -6,6 +6,8 @@ This is an **idea list for a possible v2**, not a committed plan. The directions
 
 Everything in v1 is written at the register level — `LOAD`/`STORE`/`IADD`/`BRANCH` — and the experiments keep landing on the same conclusion: that verbosity, not missing batteries or model skill, is the token-cost lever. So the central v2 idea is a **denser surface syntax** — expressions and ordinary control flow in place of raw load/store/branch — that still lowers, unambiguously, to the *same* content-addressed, checked behavior graph. The bet is that this buys back tokens without giving up the safety or the from-the-spec learnability. Whether it actually does is the thing v2 has to prove.
 
+How this objective is operationalized — density measured in the authoring model's own token space, contracts staying explicit while implementations compress, a numeric target tracked per run, and a control experiment that bounds the training-data confound — is proposed in [v2-density-pillar.md](v2-density-pillar.md).
+
 This is the only direction the measurements directly demand. The rest below is more speculative.
 
 ## What carries over, what was oversold, what needs rework
@@ -37,7 +39,7 @@ A triage of v1, kept because the distinction is still useful:
 ## Open questions (not yet answered)
 
 - Formal definitions for behavior / contract / composition / structural-completeness, and which checks are decidable at what cost. This is genuine prior-art-adjacent work (session types, effect systems, design-by-contract, refinement-typed languages) — positioning Sigil accurately against them is part of it, not a footnote.
-- Whether a denser syntax actually recovers tokens without re-introducing ambiguity.
+- Whether a denser syntax actually recovers tokens without re-introducing ambiguity ([v2-density-pillar.md](v2-density-pillar.md) defines how to measure both sides of that trade).
 - Whether gap-driven elicitation produces *useful* questions on real specs, not toy ones.
 - Whether training a model on Sigil closes the cost gap (the experiments can't separate register-level verbosity from the absence of any training signal — see [The Sigil Experiment](THE-SIGIL-EXPERIMENT.md)).
 
