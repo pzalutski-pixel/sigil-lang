@@ -99,27 +99,16 @@ intuition.
    the same verified primitive graph — the candidates' binding constraints
    (C1–C13) are the existing statement of this. Density never bypasses a
    check.
-5. **Inference into the implementation — yes; inference out of the contract —
-   OPEN.** The uncontroversial half: a size or type stated once in the CONTRACT
-   should not be restated in expression code (the candidates' type-inference
-   design); that flows *from* the contract *into* the body and thins nothing.
-   The contested half is the contract itself, and this document deliberately
-   does not decide it. The original draft of this pillar proposed inferring
-   "common GUARANTEES" to save authored tokens — but guarantees *are* contract
-   content and are hashed, so this collides with the pillar's own
-   contracts-stay-explicit rule. Concretely: deriving guarantees from the body
-   would let an implementation edit move a contract hash (today, body-only
-   edits never force dependents to re-pin), and it reverses the contract-first
-   direction for that slice of the contract — the contract stops being purely a
-   promise and becomes partly a description. How to handle this — full
-   declaration as today, tool-suggested-but-author-written, or defaults with
-   opt-out for near-universal guarantees — is an **open design question for the
-   V2 design sessions, recorded here only as a question.** Two fixed points any
-   resolution can build on: hash pins stay deliberately authored even though
-   the value is tool-computed (the run-3 decision — auto-writing pins would
-   silently re-pin the drift the hash exists to catch), and `string`'s no-size
-   rule (Reference §2.5) shows when a contract token may legitimately go: only
-   when the information remains fully present.
+5. **The CONTRACT section is out of scope for density work — entirely.**
+   Density applies to `IMPLEMENTATION` and `COMPOSITION` bodies only. The
+   contract — inputs, outputs, guarantees, requires, hash — is the header the
+   AI navigates by and stays exactly as explicit as v1, untouched. The only
+   inference is from the contract *into* the body: a size or type stated once
+   in the CONTRACT is not restated in expression code (the candidates'
+   type-inference design). (An earlier draft listed "common GUARANTEES" among
+   tokens to save; that was struck — guarantees are contract content, and the
+   contract is not where the token cost lives anyway: the measured verbosity
+   is register-level implementation code.)
 6. **Tokenizer-aware keyword and operator selection.** Candidates tested
    against the tokenizer basket; single-token forms preferred — while staying
    CFG-expressible, since the grammar must still publish as EBNF/GBNF for
@@ -139,14 +128,15 @@ This document sets the objective and the measurement discipline. It does not
 make the design decisions; those happen in design sessions, judged against the
 measurements above. Open as of this writing:
 
-- **Guarantee handling** (implication 5 — declared vs. tool-suggested vs.
-  defaulted): the first session topic.
 - **The grammar itself**: [v2-grammar-candidates.md](v2-grammar-candidates.md)
   collects the options; none is chosen.
 - **Scalars-as-values semantics** (implication 2): direction named by the
   experiments, design not done.
 - **The tokenizer basket composition** and **the numeric target** (the ≤2× is
   provisional, not derived).
+
+One thing is decided, not open: density work is scoped to implementation
+bodies. The CONTRACT section is untouched by this pillar (implication 5).
 
 ## The governing tension — and the frontier
 
