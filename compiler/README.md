@@ -4,7 +4,7 @@ The Sigil compiler lowers behavior files to native executables through LLVM. It 
 
 ## What it does
 
-- Compiles a `.sigil` entry point and the `.beh` behaviors it calls into a native x86-64 executable.
+- Compiles a `.sigil` entry point and the `.beh` behaviors it calls into a native executable for the host (x86-64 and arm64 both validated).
 - Runs a sequence of compile-time checks (below), lowers through LLVM with optimization, and links via the platform toolchain.
 - Caches compiled behaviors so unchanged ones aren't recompiled (incremental builds).
 
@@ -28,7 +28,7 @@ Most of these are enforced and unit-tested today: the memory-safety and ownershi
 
 ## Building
 
-Windows only. Requires Rust (MSVC toolchain), VS Build Tools, and the **LLVM 18.1.x development libraries**.
+On Windows: requires Rust (MSVC toolchain), VS Build Tools, and the **LLVM 18.1.x development libraries**. On Linux/macOS: `cargo` with the system LLVM 18 packages — `.github/workflows/ci.yml` shows the exact set per OS.
 
 LLVM 18 specifically (not newer) because the Rust bindings (`inkwell` / `llvm-sys`) target it and it matches `rustc`'s own LLVM line. The full setup — the LLVM dev package, `LLVM_SYS_180_PREFIX`, and the `libxml2s.lib` stub the official LLVM package needs — is in the [Building section of the project README](../README.md#building-and-running).
 
@@ -40,4 +40,4 @@ compiler\build.bat --test      # build + run the test suite
 
 ## Status
 
-The compiler builds, the test suite passes, and all bundled examples compile and run. Output is native x86-64 (validated on Windows). Node-level checking is real and thorough, the concurrency runtime works, and whole-graph (inter-behavior) validation is wired — transitive purity, circular-dependency rejection, dependency hash-pins, and outputs-consumed (`E0511`). What remains is the full graph-level input-sourcing check (`find_gaps`, built but unwired on V1). See [`../docs/STATUS.md`](../docs/STATUS.md).
+The compiler builds, the test suite passes, and all bundled examples compile and run on Windows, Linux, and macOS (CI). Output is native code for the host — x86-64 and arm64 both validated. Node-level checking is real and thorough, the concurrency runtime works, and whole-graph (inter-behavior) validation is wired — transitive purity, circular-dependency rejection, dependency hash-pins, and outputs-consumed (`E0511`). What remains is the full graph-level input-sourcing check (`find_gaps`, built but unwired on V1). See [`../docs/STATUS.md`](../docs/STATUS.md).

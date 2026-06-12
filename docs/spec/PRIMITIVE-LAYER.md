@@ -450,7 +450,7 @@ Raw kernel system call. `num` is the syscall number (OS-specific).
 │  System access is via NATIVE behaviors whose                │
 │  implementations live in the C runtime (runtime/src/).      │
 │  "write" is a NATIVE behavior; the C runtime handles         │
-│  per-platform details (Windows validated; POSIX present).   │
+│  per-platform details (Windows, Linux, macOS validated).    │
 └─────────────────────────────────────────────────────────────┘
                           │
                           │ uses
@@ -468,8 +468,8 @@ Raw kernel system call. `num` is the syscall number (OS-specific).
 ┌─────────────────────────────────────────────────────────────┐
 │                    NATIVE CODE                              │
 │                                                             │
-│  x86-64 machine instructions today (LLVM backend; ARM and   │
-│  RISC-V are possible future targets, not built).            │
+│  x86-64 and arm64 machine instructions today (the LLVM      │
+│  backend targets the host; cross-targets are not built).    │
 └─────────────────────────────────────────────────────────────┘
 ```
 

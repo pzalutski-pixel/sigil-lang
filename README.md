@@ -5,10 +5,10 @@
 ![Status](https://img.shields.io/badge/status-experimental-yellow)
 ![Compiler](https://img.shields.io/badge/compiler-Rust%20%2B%20LLVM-orange)
 ![Runtime](https://img.shields.io/badge/runtime-C-green)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
-> Sigil is an open exploration of one question — *should AI have a language of its own?* — taken far enough to actually test it: a working Rust + LLVM compiler, a behavior-graph model the compiler checks as a graph, a standard library, and every bundled example building and running. It's a V1 — register-level, validated on Windows so far, with some of the original goals still partly enforced; [`docs/STATUS.md`](docs/STATUS.md) is the per-feature account of what's real. ["Does the idea actually help?"](#does-the-idea-actually-help) reports what testing it found — an AI learned the language cold from the spec and wrote it **correctly** (12/12 byte-exact in the re-run), at **several times the token cost** of Python: encouraging on learnability, and the cost is the open problem the next iteration targets.
+> Sigil is an open exploration of one question — *should AI have a language of its own?* — taken far enough to actually test it: a working Rust + LLVM compiler, a behavior-graph model the compiler checks as a graph, a standard library, and every bundled example building and running. It's a V1 — register-level, validated on Windows, Linux, and macOS, with some of the original goals still partly enforced; [`docs/STATUS.md`](docs/STATUS.md) is the per-feature account of what's real. ["Does the idea actually help?"](#does-the-idea-actually-help) reports what testing it found — an AI learned the language cold from the spec and wrote it **correctly** (12/12 byte-exact in the re-run), at **several times the token cost** of Python: encouraging on learnability, and the cost is the open problem the next iteration targets.
 
 ---
 
@@ -182,10 +182,10 @@ The line-based `.beh` format is a **serialization** of that graph — each line 
 
 ## What works, and what doesn't
 
-The compiler is real, and the checking is thorough at two levels: *per-behavior* (inside a behavior) and *whole-graph* (the wiring *between* behaviors). What remains unbuilt isn't the checking but the denser V2 surface syntax, compiler-inferred parallelism, and platforms beyond Windows — the concurrency runtime itself works.
+The compiler is real, and the checking is thorough at two levels: *per-behavior* (inside a behavior) and *whole-graph* (the wiring *between* behaviors). What remains unbuilt isn't the checking but the denser V2 surface syntax and compiler-inferred parallelism — the concurrency runtime itself works.
 
 **Works today**
-- A Rust + LLVM 18 compiler that produces native x86-64 executables; all bundled examples build and run.
+- A Rust + LLVM 18 compiler that produces native executables for the host (x86-64 and arm64); all bundled examples build and run on Windows, Linux, and macOS (CI-verified).
 - The 43 primitive operations, handle-based memory (opaque handles, single ownership), and contract hashing.
 - Per-behavior checks (CFG-aware, across all execution paths): type/size matching; static bounds checking; use-after-free, double-free, uninitialized-read, and memory-leak detection; ownership (you can't free a borrowed input or a handle a live `SPAWN` is using); atomic access to `SHARED` memory; and "every output is written on every path." All with unit tests.
 - Cross-behavior (whole-graph) **dependency** checks: **transitive purity** (a `pure` behavior can't depend, even transitively, on a non-pure one), **circular-dependency** rejection, and **dependency hash pins** (a `REQUIRES name@hash` whose pin no longer matches the dependency's current contract is a compile error — including for linked stdlib deps) — wired into the compile pipeline, with tests.
@@ -194,9 +194,9 @@ The compiler is real, and the checking is thorough at two levels: *per-behavior*
 
 **Not yet**
 - A denser **V2 surface syntax** — expressions and ordinary control flow in place of raw load/store/branch — is not built. This is the token-cost lever the experiment points at; everything today is written at the register level.
-- The compiler doesn't auto-parallelize independent calls (they run sequentially), and `WAIT` result-passing is simplified; no performance benchmarks; validated on Windows only.
+- The compiler doesn't auto-parallelize independent calls (they run sequentially), and `WAIT` result-passing is simplified; no performance benchmarks.
 
-The short version: per-behavior checking is real and fairly thorough, and the cross-behavior checks — dependency (transitive purity, no cycles) *and* port completeness (outputs consumed, inputs sourced) — are enforced. What remains is the denser V2 syntax, auto-parallelization, and platforms beyond Windows. Per-feature detail in [`docs/STATUS.md`](docs/STATUS.md).
+The short version: per-behavior checking is real and fairly thorough, and the cross-behavior checks — dependency (transitive purity, no cycles) *and* port completeness (outputs consumed, inputs sourced) — are enforced. What remains is the denser V2 syntax and auto-parallelization. Per-feature detail in [`docs/STATUS.md`](docs/STATUS.md).
 
 ---
 
@@ -220,7 +220,7 @@ Plus one check applied to **every** behavior automatically (not a declarable key
 
 **Dependency verification** — contract hashes identify behavior versions; a hash mismatch is a compile error. (The earlier `no_syscall` guarantee and a `CAPABILITIES` system were removed from the language; system access now goes through NATIVE behaviors.)
 
-**Code generation** — LLVM backend with optimization, native x86-64 executables, automatic runtime linking.
+**Code generation** — LLVM backend with optimization, native executables for the host architecture (x86-64 and arm64 both validated), automatic runtime linking.
 
 ## The runtime
 
@@ -228,7 +228,7 @@ A small C runtime provides the system-access behaviors (file, console, networkin
 
 The model: lightweight tasks on a fixed worker pool (N workers for N cores), and bounded multi-producer/multi-consumer channels with blocking send/receive — exposed through `SPAWN`, `WAIT`, `WAIT_ALL`, `WAIT_ANY`, `CHANNEL`, `CHANNEL_SEND`, `CHANNEL_RECEIVE`, `CHANNEL_CLOSE`. The compiler lowers these to runtime calls that run on real OS threads, and the `spawn-test`, `parallel-test`, `channel-test`, and `producer-consumer` examples build and run.
 
-> The compile-time concurrency-safety checks **are** enforced — non-atomic access to a `SHARED` handle and freeing a handle a live `SPAWN` still borrows are both compile errors (with tests). What's *not* done: the compiler does not auto-parallelize independent calls (they run sequentially), `WAIT` result-passing is simplified; there are no performance benchmarks; validated on Windows only. See [`docs/STATUS.md`](docs/STATUS.md).
+> The compile-time concurrency-safety checks **are** enforced — non-atomic access to a `SHARED` handle and freeing a handle a live `SPAWN` still borrows are both compile errors (with tests). What's *not* done: the compiler does not auto-parallelize independent calls (they run sequentially), `WAIT` result-passing is simplified; there are no performance benchmarks. See [`docs/STATUS.md`](docs/STATUS.md).
 
 ---
 
@@ -254,7 +254,7 @@ System interactions go through NATIVE behaviors backed by the C runtime, not raw
 
 ## Building and running
 
-Windows only, for now.
+The instructions below are for Windows, the development platform. Linux and macOS build the same stages with system toolchains — `cargo` + system LLVM 18, `runtime/build.sh`, and the same `--lib` stdlib build — exercised end-to-end by [CI](.github/workflows/ci.yml).
 
 ### Prerequisites
 

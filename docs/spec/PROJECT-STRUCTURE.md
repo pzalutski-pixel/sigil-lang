@@ -832,7 +832,7 @@ Examples:
 
 ## Part 9: Platform Abstraction
 
-> **DESIGN INTENT, partially realized (see [STATUS.md](../STATUS.md)):** `--target` selection is not implemented, and only Windows is built and validated. The cross-platform *code* exists — the C runtime carries POSIX `#else` branches throughout (`platform.h`, `file.c`, `net.c`, `console.c`: pthreads, BSD sockets, POSIX I/O), and a Linux/macOS CI workflow is prepared but has never run. The NATIVE + C-runtime architecture below is the portability path; what's missing is building and validating on non-Windows platforms, not the structure.
+> **DESIGN INTENT, largely realized (see [STATUS.md](../STATUS.md)):** the NATIVE + C-runtime architecture below works as designed — Windows, Linux, and macOS all build and pass CI (compiler suite, POSIX runtime, stdlib, example byte-checks; `.github/workflows/ci.yml`). What is *not* implemented is `--target` cross-compilation: the compiler targets its host (x86-64 and arm64 both validated).
 
 ### The Problem
 
