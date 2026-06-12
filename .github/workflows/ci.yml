@@ -32,7 +32,8 @@ jobs:
       - name: Install LLVM 18 (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install llvm@18
+          # coreutils: for gtimeout (the runner image ships no `timeout`).
+          brew install llvm@18 coreutils
           PREFIX="$(brew --prefix llvm@18)"
           echo "LLVM_SYS_180_PREFIX=$PREFIX" >> "$GITHUB_ENV"
           echo "$PREFIX/bin" >> "$GITHUB_PATH"
@@ -70,17 +71,26 @@ jobs:
           ./fc
           cmp test_source.txt test_dest.txt
 
-          # kv-store: prints "Sigil" then "Deleted correctly".
+          # kv-store: prints "Sigil" then "Deleted correctly". Run it once and
+          # check the captured output (grep -q on a live pipe SIGPIPEs the
+          # binary mid-write).
           $SC examples/kv-store/main.sigil $LINK -o kv
-          ./kv | grep -q '^Sigil$'
-          ./kv | grep -q '^Deleted correctly$'
+          KV_OUT="$(./kv)"
+          printf '%s\n' "$KV_OUT"
+          printf '%s\n' "$KV_OUT" | grep -q '^Sigil$'
+          printf '%s\n' "$KV_OUT" | grep -q '^Deleted correctly$'
 
           # concurrency demos: must complete (exit 0). `timeout` is GNU
-          # coreutils; macOS runners ship it as `gtimeout`.
-          TIMEOUT="$(command -v timeout || command -v gtimeout)"
+          # coreutils (gtimeout on macOS, installed above); if neither resolves,
+          # run bare rather than dying silently on this assignment under set -e.
+          TIMEOUT="$(command -v timeout || command -v gtimeout || true)"
           for ex in spawn-test parallel-test channel-test producer-consumer; do
             $SC examples/$ex/main.sigil $LINK -o "$ex.out"
-            "$TIMEOUT" 30 "./$ex.out" >/dev/null
+            if [ -n "$TIMEOUT" ]; then
+              "$TIMEOUT" 30 "./$ex.out" >/dev/null
+            else
+              "./$ex.out" >/dev/null
+            fi
           done
 
           echo "All examples built and ran on ${{ matrix.os }}"
